@@ -1,6 +1,0 @@
-asgiref==3.10.0
-Django==5.2.7
-sqlparse==0.5.3
-typing_extensions==4.15.0
-django-phonenumber-field[phonenumberslite]
-psycopg2-binary>=2.9
