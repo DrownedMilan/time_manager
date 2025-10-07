@@ -1,7 +1,18 @@
 services:
   backend:
     container_name: backend
+    build: ./backend
+    depends_on:
+      database:
+        condition: service_healthy
+        restart: true
     restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - "./backend:/app"
   nginx:
     container_name: nginx
     image: nginx:1.28.0-alpine3.21
@@ -13,4 +24,18 @@ services:
   database:
     container_name: database
     image: postgres:17-bookworm
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     restart: always
+    volumes:
+      - /Users/miky/epitech/time_manager/.postgres_db:/var/lib/postgresql/data/
