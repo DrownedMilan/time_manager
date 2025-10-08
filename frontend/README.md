@@ -5,6 +5,14 @@
 Before starting, make sure you have the following installed:
 
 - **Node.js 20.19.0**
+
+  If you use **nvm** (Node Version Manager), run:
+  ```bash
+  nvm install 20.19.0
+  nvm use 20.19.0
+  ```
+
+  Then verify your Node version:
   ```bash
   node -v
   ```
@@ -111,4 +119,4 @@ node_modules/
 
 ---
 
-✅ You’re now ready to run the project with Yarn 4 and Vite.js!
+✅ You’re now ready to run the project with **Node 20.19.0**, **Yarn 4**, and **Vite.js**!
