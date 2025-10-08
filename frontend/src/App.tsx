@@ -1,6 +1,7 @@
-// import React from "react";
 import { AppBar, Toolbar, Typography, Button } from "@mui/material";
-import { Link } from "react-router-dom";
+import { Link, Routes, Route } from "react-router-dom";
+import UsersPage from "@/pages/UsersPage";
+import LoginPage from "@/pages/LoginPage";
 
 interface AppProps {
   toggleTheme: () => void;
@@ -10,6 +11,7 @@ interface AppProps {
 export default function App({ toggleTheme, mode }: AppProps) {
   return (
     <>
+      {/* ta bannière MUI */}
       <AppBar position="static" color="primary">
         <Toolbar>
           <Typography
@@ -39,6 +41,11 @@ export default function App({ toggleTheme, mode }: AppProps) {
         </Toolbar>
       </AppBar>
 
+      {/* ✅ tes pages s’affichent ici */}
+      <Routes>
+        <Route path="/" element={<UsersPage />} />
+        <Route path="/login" element={<LoginPage />} />
+      </Routes>
     </>
   );
 }
