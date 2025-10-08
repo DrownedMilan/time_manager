@@ -16,11 +16,12 @@ Before starting, make sure you have the following installed:
   ```bash
   node -v
   ```
+   > Ensure your Node version is exactly `20.19.0` (required for Vite.js)
+
   If you have npm installed, uninstall it:
   ```bash
   rm -rf node_modules package-lock.json
   ```
-  > Ensure your Node version is exactly `20.19.0` (required for Vite.js)
 
 - **Corepack** (included with Node 16+)
   ```bash
