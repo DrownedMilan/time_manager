@@ -1,13 +1,13 @@
-import { useEffect, useState } from "react";
-import { getUsers } from "@/services/users";
-import type { User } from "@/types/users";
+import { useEffect, useState } from 'react'
+import { getUsers } from '@/services/users'
+import type { User } from '@/types/users'
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  
+  const [users, setUsers] = useState<User[]>([])
+
   useEffect(() => {
-    getUsers().then(setUsers);
-  }, []);
+    getUsers().then(setUsers)
+  }, [])
 
   return (
     <div className="p-4">
@@ -20,5 +20,5 @@ export default function UsersPage() {
         ))}
       </ul>
     </div>
-  );
+  )
 }

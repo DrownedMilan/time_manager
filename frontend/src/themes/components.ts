@@ -2,9 +2,9 @@ export const components = {
   MuiButton: {
     styleOverrides: {
       root: {
-        textTransform: "none",
+        textTransform: 'none',
         borderRadius: 8,
       },
     },
   },
-};
+}

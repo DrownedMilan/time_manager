@@ -1,6 +1,6 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path from "path";
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -8,12 +8,12 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      '@': path.resolve(__dirname, './src'),
     },
   },
 
   server: {
-    host: "0.0.0.0", // ⚙️ nécessaire pour Docker et le réseau local
+    host: '0.0.0.0', // ⚙️ nécessaire pour Docker et le réseau local
     port: 5173,
     strictPort: true, // bloque le port si déjà utilisé (meilleure sécurité)
     watch: {
@@ -22,7 +22,7 @@ export default defineConfig({
   },
 
   build: {
-    outDir: "dist",
+    outDir: 'dist',
     sourcemap: true, // utile pour debug
   },
-});
+})
