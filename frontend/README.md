@@ -1,73 +1,104 @@
-# React + TypeScript + Vite
+````markdown
+## Yarn Setup & Project Installation
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### Requirements
+- **Node.js 20.19.0**
+  ```bash
+  node -v
+````
 
-Currently, two official plugins are available:
+> Make sure your Node version is exactly 20.19.0 (Vite requires it)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+* **Corepack** (comes with Node 16+)
 
-## React Compiler
+  ```bash
+  corepack enable
+  ```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+### Install Yarn 4
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. Enable Corepack (if not already):
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+   ```bash
+   corepack enable
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+2. Prepare and activate Yarn 4:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+   ```bash
+   corepack prepare yarn@stable --activate
+   ```
+
+3. Verify the Yarn version:
+
+   ```bash
+   yarn -v
+   ```
+
+   > ✅ You should see something like `4.x.x`.
+
+4. (Optional) Lock Yarn to this project:
+
+   ```bash
+   yarn set version stable
+   ```
+
+This will create a `.yarnrc.yml` file containing:
+
+```yaml
+yarnPath: .yarn/releases/yarn-4.x.x.cjs
+nodeLinker: node-modules
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Install Dependencies
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+At the root of the project, run:
+
+```bash
+yarn install
 ```
+
+This will:
+
+* Install all dependencies listed in `package.json`
+* Generate or update `yarn.lock`
+* Create the `.yarn/` directory structure
+
+---
+
+### Run the App (Example)
+
+If your app uses **Vite.js**, start the development server with:
+
+```bash
+yarn dev
+```
+
+Then open:
+👉 [http://localhost:5173](http://localhost:5173)
+
+---
+
+### Useful Commands
+
+| Action                    | Command                               |
+| ------------------------- | ------------------------------------- |
+| Install dependencies      | `yarn install`                        |
+| Add a dependency          | `yarn add <package>`                  |
+| Add a dev dependency      | `yarn add -D <package>`               |
+| Remove a dependency       | `yarn remove <package>`               |
+| Run the dev server (Vite) | `yarn dev`                            |
+| Lint code                 | `yarn lint`                           |
+| Clean & reinstall         | `rm -rf node_modules && yarn install` |
+
+---
+
+### Notes
+
+* Always use **Yarn** (never mix with npm).
+* Commit the `yarn.lock` file.
+* Ignore `node_modules/` and Yarn cache folders in your `.gitignore`.
