@@ -16,6 +16,10 @@ Before starting, make sure you have the following installed:
   ```bash
   node -v
   ```
+  If you have npm installed, uninstall it:
+  ```bash
+  rm -rf node_modules package-lock.json
+  ```
   > Ensure your Node version is exactly `20.19.0` (required for Vite.js)
 
 - **Corepack** (included with Node 16+)
@@ -84,15 +88,15 @@ Then open your browser at:
 
 ## 🧰 Useful Commands
 
-| Action | Command |
-|--------|----------|
-| Install dependencies | `yarn install` |
-| Add a package | `yarn add <package>` |
-| Add a dev dependency | `yarn add -D <package>` |
-| Remove a package | `yarn remove <package>` |
-| Run the Vite dev server | `yarn dev` |
-| Lint the code | `yarn lint` |
-| Clean install | `rm -rf node_modules && yarn install` |
+| Action                  | Command                               |
+| ----------------------- | ------------------------------------- |
+| Install dependencies    | `yarn install`                        |
+| Add a package           | `yarn add <package>`                  |
+| Add a dev dependency    | `yarn add -D <package>`               |
+| Remove a package        | `yarn remove <package>`               |
+| Run the Vite dev server | `yarn dev`                            |
+| Lint the code           | `yarn lint`                           |
+| Clean install           | `rm -rf node_modules && yarn install` |
 
 ---
 
