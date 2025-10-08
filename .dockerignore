@@ -1,0 +1,59 @@
+# ==========================================
+# Ignore Node / Build files
+# ==========================================
+node_modules
+dist
+build
+.cache
+.vite
+.next
+out
+
+# ==========================================
+# Ignore logs and temporary files
+# ==========================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# ==========================================
+# Ignore environment and secrets
+# ==========================================
+.env
+.env.local
+.env.*.local
+
+# ==========================================
+# Ignore editor & OS files
+# ==========================================
+.DS_Store
+.idea
+.vscode
+*.swp
+Thumbs.db
+
+# ==========================================
+# Ignore Git-related files
+# ==========================================
+.git
+.gitignore
+.gitattributes
+
+# ==========================================
+# Ignore tests and coverage
+# ==========================================
+coverage
+__tests__
+__mocks__
+*.spec.ts
+*.test.ts
+*.spec.tsx
+*.test.tsx
+
+# ==========================================
+# Ignore Docker files themselves (optional)
+# ==========================================
+docker-compose.yml
+Dockerfile*

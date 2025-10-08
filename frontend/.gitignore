@@ -1,0 +1,51 @@
+# ----------------------------------------
+#  Node / Yarn / Vite Project Gitignore
+# ----------------------------------------
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Node modules & Yarn
+node_modules/
+.pnp.*
+.yarn/install-state.gz
+
+# Yarn 4 (Berry)
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+
+# Build output
+dist/
+dist-ssr/
+*.local
+
+# Environment files
+.env
+.env.*.local
+
+# OS / System files
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Optional cache or test files
+coverage/
+*.tsbuildinfo
