@@ -1,7 +1,6 @@
 
 ---
 
-````markdown
 ## Yarn Setup & Project Installation
 
 ### Requirements
