@@ -5,3 +5,4 @@ typing_extensions==4.15.0
 django-phonenumber-field[phonenumberslite]==8.0.0
 phonenumberslite==8.13.44
 psycopg2-binary>=2.9
+djangorestframework==3.16.1
