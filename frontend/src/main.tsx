@@ -1,32 +1,21 @@
-import React, { useMemo, useState } from "react";
-import ReactDOM from "react-dom/client";
-import App from "./App";
-import { CssBaseline, ThemeProvider } from "@mui/material";
-import { BrowserRouter } from "react-router-dom";
-import { lightTheme, darkTheme } from "@/themes";
-import "@fontsource/roboto/300.css";
-import "@fontsource/roboto/400.css";
-import "@fontsource/roboto/500.css";
-import "@fontsource/roboto/700.css";
-// import RoutesConfig from "@/routes"; 
+import { useMemo, useState } from 'react'
+import ReactDOM from 'react-dom/client'
+import { ThemeProvider, CssBaseline } from '@mui/material'
+import App from './App'
+import { getAppTheme } from './themes'
 
-export function Main() {
-    const [mode, setMode] = useState<"light" | "dark">("light");
-    const theme = useMemo(() => (mode === "light" ? lightTheme : darkTheme), [mode]);
-    const toggleTheme = () => setMode((prev) => (prev === "light" ? "dark" : "light"));
+export default function Main() {
+  const [mode, setMode] = useState<'light' | 'dark'>('light')
+  const theme = useMemo(() => getAppTheme(mode), [mode])
 
-    return (
-        <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <BrowserRouter>
-                <App toggleTheme={toggleTheme} mode={mode} />
-            </BrowserRouter>
-        </ThemeProvider>
-    );
+  const toggleTheme = () => setMode((prev) => (prev === 'light' ? 'dark' : 'light'))
+
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <App toggleTheme={toggleTheme} mode={mode} />
+    </ThemeProvider>
+  )
 }
 
-ReactDOM.createRoot(document.getElementById("root")!).render(
-    <React.StrictMode>
-        <Main />
-    </React.StrictMode>
-);
+ReactDOM.createRoot(document.getElementById('root')!).render(<Main />)

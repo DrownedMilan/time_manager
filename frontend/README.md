@@ -7,18 +7,22 @@ Before starting, make sure you have the following installed:
 - **Node.js 20.19.0**
 
   If you use **nvm** (Node Version Manager), run:
+
   ```bash
   nvm install 20.19.0
   nvm use 20.19.0
   ```
 
   Then verify your Node version:
+
   ```bash
   node -v
   ```
-   > Ensure your Node version is exactly `20.19.0` (required for Vite.js)
+
+  > Ensure your Node version is exactly `20.19.0` (required for Vite.js)
 
   If you have npm installed, uninstall it:
+
   ```bash
   rm -rf node_modules package-lock.json
   ```
@@ -33,19 +37,23 @@ Before starting, make sure you have the following installed:
 ## ⚙️ Install Yarn 4
 
 1. Enable Corepack (if not already):
+
    ```bash
    corepack enable
    ```
 
 2. Prepare and activate Yarn 4:
+
    ```bash
    corepack prepare yarn@stable --activate
    ```
 
 3. Verify the Yarn version:
+
    ```bash
    yarn -v
    ```
+
    > ✅ You should see a version like `4.x.x`
 
 4. (Optional) Lock Yarn to this project:
@@ -54,6 +62,7 @@ Before starting, make sure you have the following installed:
    ```
 
 This will create a `.yarnrc.yml` file that looks like:
+
 ```yaml
 yarnPath: .yarn/releases/yarn-4.x.x.cjs
 nodeLinker: node-modules
@@ -64,11 +73,13 @@ nodeLinker: node-modules
 ## 📦 Install Project Dependencies
 
 At the root of the project, run:
+
 ```bash
 yarn install
 ```
 
 This will:
+
 - Install all dependencies listed in `package.json`
 - Generate or update the `yarn.lock` file
 - Create the `.yarn/` structure for Yarn 4
@@ -78,6 +89,7 @@ This will:
 ## 🚀 Run the App (Vite.js)
 
 To start the development server:
+
 ```bash
 yarn dev
 ```
