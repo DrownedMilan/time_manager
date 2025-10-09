@@ -1,18 +1,55 @@
-from fastapi import FastAPI, Depends
-from sqlalchemy.orm import Session
-from app.database import Base, engine, SessionLocal
+from fastapi import FastAPI, Depends, HTTPException
+from sqlmodel import SQLModel, Session, select
+from app.database import engine, get_session
+from app.models import User
 
 app = FastAPI()
 
-Base.metadata.create_all(bind=engine)
-
-def get_db():
-	db = SessionLocal()
-	try:
-		yield db
-	finally:
-		db.close()
+@app.on_event("startup")
+def on_startup():
+	SQLModel.metadata.create_all(engine)
 
 @app.get("/")
-def read_root(db: Session = Depends(get_db)):
-	return {"message": "Connected to PostgreSQL!"}
+async def root():
+	return {"message": "Connected to PostgreSQL via SQLModel!"}
+
+# 'USERS' Methods
+@app.post("/users/", response_model=User)
+async def create_user(user: User, session: Session = Depends(get_session)) -> User:
+	session.add(user)
+	session.commit()
+	session.refresh(user)
+	return user
+
+@app.get("/users/", response_model=list[User])
+async def get_users(session: Session = Depends(get_session)) -> list[User]:
+	users = session.exec(select(User)).all()
+	return users
+
+@app.get("/users/{user_id}", response_model=User)
+async def get_user(user_id: int, session: Session = Depends(get_session)) -> User:
+	user = session.get(User, user_id)
+	if not user:
+		raise HTTPException(status_code=404, detail="User not found")
+	return user
+
+@app.put("/users/{user_id}", response_model=User)
+async def put_user(user_id: int, user: User, session: Session = Depends(get_session)) -> User:
+	db_user = session.get(User, user_id)
+	if not db_user:
+		raise HTTPException(status_code=404, detail="User not found")
+	user_data = user.model_dump(exclude_unset=True)
+	db_user.sqlmodel_update(user_data)
+	session.add(db_user)
+	session.commit()
+	session.refresh(db_user)
+	return db_user
+
+@app.delete("/users/{user_id}", response_model=User)
+async def delete_user(user_id: int, session: Session = Depends(get_session)) -> User:
+	db_user = session.get(User, user_id)
+	if not db_user:
+		raise HTTPException(status_code=404, detail="User not found")
+	session.delete(db_user)
+	session.commit()
+	return {"ok": True}
