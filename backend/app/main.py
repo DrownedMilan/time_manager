@@ -3,7 +3,23 @@ from sqlmodel import SQLModel, Session, select
 from app.database import engine, get_session
 from app.models import User
 
-app = FastAPI()
+app = FastAPI(
+	title="Time Manager API",
+	description="API for managing users in a PostgreSQL database using FastAPI and SQLAlchemy.",
+	version="1.0.0",
+	docs_url="/Documentation" #swagger direct à la racine
+)
+
+from fastapi.middleware.cors import CORSMiddleware
+
+# 🔹 Autoriser le front (React) à communiquer avec le back
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 def on_startup():

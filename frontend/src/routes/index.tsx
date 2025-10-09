@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom'
 import AppLayout from '@/layouts/AppLayout'
 import UsersPage from '@/pages/UsersPage'
+import LoginPage from '@/pages/LoginPage'
 // import DashboardPage from '@/pages/DashboardPage'
 // import LoginPage from '@/pages/LoginPage'
 
@@ -19,7 +20,7 @@ export default function AppRoutes({ toggleTheme, mode }: AppRoutesProps) {
       </Route>
 
       {/* Routes publiques (sans layout, ex: Login) */}
-      {/* <Route path="/login" element={<LoginPage />} /> */}
+      <Route path="/login" element={<LoginPage />} />
     </Routes>
   )
 }
