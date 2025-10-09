@@ -6,10 +6,11 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 
-  const handleLogin = (e) => {
-    e.preventDefault()
-    alert(`Email: ${email}\nPassword: ${password}`)
-  }
+  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault()
+  alert(`Email: ${email}\nPassword: ${password}`)
+}
+
 
   return (
     <Box
@@ -59,8 +60,7 @@ export default function LoginPage() {
             onChange={(e) => setPassword(e.target.value)}
           />
           <Typography
-            variant="h10"
-            component="h10"
+            variant="h6"
             color="primary"
             sx={{ mt: 2, cursor: 'pointer' }}
             onClick={() => alert('Redirect to password reset')}
