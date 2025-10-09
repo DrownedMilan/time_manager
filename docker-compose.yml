@@ -30,25 +30,27 @@ services:
     env_file:
       - .env
     volumes:
-      - "./backend:/app"
-  # frontend:
-  #   container_name: frontend
-  #   build: ./frontend
-  #   depends_on:
-  #     - backend
-  #   restart: unless-stopped
-  #   ports:
-  #     - "3000:80"
-  #   env_file:
-  #     - .env
-  #   volumes:
-  #     - "./frontend:/app"
+      - "./backend/app:/code/app"
+  frontend:
+    container_name: frontend
+    build: ./frontend
+    depends_on:
+      - backend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    stdin_open: true
+    tty: true
+    env_file:
+      - .env
+    volumes:
+      - "./frontend:/app"
 
-  # nginx:
-  #   container_name: nginx
-  #   image: nginx:1.28.0-alpine3.21
-  #   depends_on:
-  #     - backend
-  #   ports:
-  #     - "80:80"
-  #   restart: always
+  nginx:
+    container_name: nginx
+    image: nginx:1.28.0-alpine3.21
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    restart: always
