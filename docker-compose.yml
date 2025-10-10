@@ -1,4 +1,5 @@
 services:
+  # DATABASE
   database:
     container_name: database
     image: postgres:17-bookworm
@@ -17,6 +18,8 @@ services:
     restart: always
     volumes:
       - ./.postgres_db:/var/lib/postgresql/data/
+
+  # BACKEND
   backend:
     container_name: backend
     build: ./backend
@@ -31,6 +34,8 @@ services:
       - .env
     volumes:
       - ./backend/app:/code/app
+
+  # FRONTEND
   frontend:
     container_name: frontend
     build: ./frontend
@@ -46,11 +51,29 @@ services:
     volumes:
       - ./frontend:/app
 
+  # NGINX (Reverse Proxy)
+  # nginx:
+  #   container_name: nginx
+  #   image: nginx:1.28.0-alpine3.21
+  #   depends_on:
+  #     - backend
+  #     - frontend
+  #     # - ++ak
+  #   ports:
+  #     - "80:80"
+  #   restart: always
+  #   command: [ "nginx", "-g", "daemon off;", "-c", "/etc/nginx/nginx.conf" ]
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
   nginx:
-    container_name: nginx
     image: nginx:1.28.0-alpine3.21
+    container_name: nginx
+    ports:
+      - "8888:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
       - backend
-    ports:
-      - "80:80"
+      - frontend
     restart: always
