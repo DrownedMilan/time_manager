@@ -51,7 +51,7 @@ async def read_user(user_id: int, session: Session = Depends(get_session)) -> Us
 	return user
 
 @app.put("/users/{user_id}", response_model=UserPublic)
-async def update_user(user_id: int, user: User, session: Session = Depends(get_session)) -> UserPublic:
+async def update_user(user_id: int, user: UserCreate, session: Session = Depends(get_session)) -> UserPublic:
 	db_user = session.get(User, user_id)
 	if not db_user:
 		raise HTTPException(status_code=404, detail="User not found")

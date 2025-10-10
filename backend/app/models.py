@@ -41,7 +41,7 @@ class User(SQLModel, table=True):
 		except phonenumbers.NumberParseException:
 			raise ValueError("Invalid phone number format")
 
-	# - Utilitites -
+	# - Utilities -
 
 	@property
 	def full_name(self) -> str:
@@ -68,7 +68,7 @@ class UserMinimal(SQLModel):
 	id: int
 	first_name: str
 	last_name: str
-	email: str
+	email: EmailStr
 
 # --- Clock model ---
 class Clock(SQLModel, table=True):
