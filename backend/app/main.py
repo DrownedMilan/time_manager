@@ -63,7 +63,7 @@ async def update_user(user_id: int, user: UserCreate, session: Session = Depends
 	return db_user
 
 @app.get("/users/{user_id}/clocks/", response_model=list[ClockPublic])
-async def read_user_clocks(user_id : int, session: Session = Depends(get_session)) -> list[ClockPublic]:
+async def read_user_clocks(user_id: int, session: Session = Depends(get_session)) -> list[ClockPublic]:
 	statement = select(Clock).where(Clock.user_id == user_id)
 	user_clocks = session.exec(statement).all()
 	return user_clocks
