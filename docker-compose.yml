@@ -30,7 +30,7 @@ services:
     env_file:
       - .env
     volumes:
-      - "./backend/app:/code/app"
+      - ./backend/app:/code/app
   frontend:
     container_name: frontend
     build: ./frontend
@@ -44,7 +44,7 @@ services:
     env_file:
       - .env
     volumes:
-      - "./frontend:/app"
+      - ./frontend:/app
 
   nginx:
     container_name: nginx
