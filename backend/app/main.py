@@ -1,13 +1,13 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import SQLModel, Session, select
 from app.database import engine, get_session
-from app.models import User
+from app.models import User, Clock, UserCreate, UserPublic, ClockCreate, ClockPublic
+from datetime import datetime, timezone
 
 app = FastAPI(
 	title="Time Manager API",
-	description="API for managing users in a PostgreSQL database using FastAPI and SQLAlchemy.",
-	version="1.0.0",
-	docs_url="/Documentation" #swagger direct à la racine
+	description="API for managing users in a PostgreSQL database using FastAPI and SQLModel.",
+	version="1.0.0"
 )
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,28 +29,29 @@ def on_startup():
 async def root():
 	return {"message": "Connected to PostgreSQL via SQLModel!"}
 
-# 'USERS' Methods
-@app.post("/users/", response_model=User)
-async def create_user(user: User, session: Session = Depends(get_session)) -> User:
-	session.add(user)
+# --- Users ---
+@app.post("/users/", response_model=UserPublic)
+async def create_user(user: UserCreate, session: Session = Depends(get_session)) -> UserPublic:
+	db_user = User.model_validate(user)
+	session.add(db_user)
 	session.commit()
-	session.refresh(user)
-	return user
+	session.refresh(db_user)
+	return db_user
 
-@app.get("/users/", response_model=list[User])
-async def get_users(session: Session = Depends(get_session)) -> list[User]:
+@app.get("/users/", response_model=list[UserPublic])
+async def read_users(session: Session = Depends(get_session)) -> list[UserPublic]:
 	users = session.exec(select(User)).all()
 	return users
 
-@app.get("/users/{user_id}", response_model=User)
-async def get_user(user_id: int, session: Session = Depends(get_session)) -> User:
+@app.get("/users/{user_id}", response_model=UserPublic)
+async def read_user(user_id: int, session: Session = Depends(get_session)) -> UserPublic:
 	user = session.get(User, user_id)
 	if not user:
 		raise HTTPException(status_code=404, detail="User not found")
 	return user
 
-@app.put("/users/{user_id}", response_model=User)
-async def put_user(user_id: int, user: User, session: Session = Depends(get_session)) -> User:
+@app.put("/users/{user_id}", response_model=UserPublic)
+async def update_user(user_id: int, user: UserCreate, session: Session = Depends(get_session)) -> UserPublic:
 	db_user = session.get(User, user_id)
 	if not db_user:
 		raise HTTPException(status_code=404, detail="User not found")
@@ -61,11 +62,44 @@ async def put_user(user_id: int, user: User, session: Session = Depends(get_sess
 	session.refresh(db_user)
 	return db_user
 
-@app.delete("/users/{user_id}", response_model=User)
-async def delete_user(user_id: int, session: Session = Depends(get_session)) -> User:
+@app.get("/users/{user_id}/clocks/", response_model=list[ClockPublic])
+async def read_user_clocks(user_id: int, session: Session = Depends(get_session)) -> list[ClockPublic]:
+	statement = select(Clock).where(Clock.user_id == user_id)
+	user_clocks = session.exec(statement).all()
+	return user_clocks
+
+@app.delete("/users/{user_id}", response_model=UserPublic)
+async def delete_user(user_id: int, session: Session = Depends(get_session)) -> UserPublic:
 	db_user = session.get(User, user_id)
 	if not db_user:
 		raise HTTPException(status_code=404, detail="User not found")
 	session.delete(db_user)
 	session.commit()
-	return {"ok": True}
+	return db_user
+
+# --- Clocks ---
+# Each user can have only one active clock (i.e., a clock with clock_out == None) at a time.
+# If an active clock exists for the user, it will be closed (clock_out set to now) before a new clock is created.
+@app.post("/clocks/", response_model=ClockPublic)
+async def create_clock(clock: ClockCreate, session: Session = Depends(get_session)) -> ClockPublic:
+	statement = select(Clock).where(Clock.user_id == clock.user_id, Clock.clock_out.is_(None))
+	existing_clock = session.exec(statement).first()
+
+	if existing_clock:
+		existing_clock.clock_out = datetime.now(timezone.utc)
+		session.add(existing_clock)
+		session.commit()
+		session.refresh(existing_clock)
+		return existing_clock
+	new_clock = Clock.model_validate(clock)
+	session.add(new_clock)
+	session.commit()
+	session.refresh(new_clock)
+	return new_clock
+
+@app.get("/clocks/", response_model=list[ClockPublic])
+async def read_clocks(session: Session = Depends(get_session)) -> list[ClockPublic]:
+	db_clocks = session.exec(select(Clock)).all()
+	return db_clocks
+
+# Teams
