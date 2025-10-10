@@ -1,5 +1,5 @@
 from sqlmodel import SQLModel, Field, Relationship
-from pydantic import EmailStr, validator
+from pydantic import EmailStr, field_validator
 from typing import Optional
 from datetime import datetime, timezone
 import phonenumbers
@@ -12,26 +12,26 @@ class User(SQLModel, table=True):
 	first_name: str = Field(index=True, nullable=False)
 	last_name: str = Field(index=True, nullable=False)
 	email: EmailStr = Field(index=True, unique=True, nullable=False)
-	phone_number: str = Field(index=True, unique=True, nullable=False)
+	phone_number: str = Field(index=True, unique=True)
 	created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
 
 	clocks: list["Clock"] = Relationship(back_populates="user")
 
 	# - Validators -
 
-	@validator("first_name")
+	@field_validator("first_name")
 	def normalize_first_name(cls, v):
 		return v.strip().capitalize()
 	
-	@validator("last_name")
+	@field_validator("last_name")
 	def normalize_last_name(cls, v):
 		return v.strip().upper()
 	
-	@validator("email")
+	@field_validator("email")
 	def normalize_email(cls, v):
 		return v.strip().lower()
 	
-	@validator("phone_number")
+	@field_validator("phone_number")
 	def validate_phone_number(cls, v):
 		try:
 			number = phonenumbers.parse(v, "FR")

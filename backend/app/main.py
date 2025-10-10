@@ -63,7 +63,7 @@ async def update_user(user_id: int, user: User, session: Session = Depends(get_s
 	return db_user
 
 @app.get("/users/{user_id}/clocks/", response_model=list[ClockPublic])
-async def read_user_clocks(user_id : int, session: Session = Depends(get_session)) -> ClockPublic:
+async def read_user_clocks(user_id : int, session: Session = Depends(get_session)) -> list[ClockPublic]:
 	statement = select(Clock).where(Clock.user_id == user_id)
 	user_clocks = session.exec(statement).all()
 	return user_clocks
@@ -79,7 +79,7 @@ async def delete_user(user_id: int, session: Session = Depends(get_session)) -> 
 
 # --- Clocks ---
 @app.post("/clocks/", response_model=ClockPublic)
-def create_clock(clock: ClockCreate, session: Session = Depends(get_session)) -> ClockPublic:
+async def create_clock(clock: ClockCreate, session: Session = Depends(get_session)) -> ClockPublic:
 	statement = select(Clock).where(Clock.user_id == clock.user_id, Clock.clock_out.is_(None))
 	existing_clock = session.exec(statement).first()
 
@@ -96,7 +96,7 @@ def create_clock(clock: ClockCreate, session: Session = Depends(get_session)) ->
 	return new_clock
 
 @app.get("/clocks/", response_model=list[ClockPublic])
-def read_clocks(session: Session = Depends(get_session)) -> list[ClockPublic]:
+async def read_clocks(session: Session = Depends(get_session)) -> list[ClockPublic]:
 	db_clocks = session.exec(select(Clock)).all()
 	return db_clocks
 
