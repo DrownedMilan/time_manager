@@ -78,6 +78,8 @@ async def delete_user(user_id: int, session: Session = Depends(get_session)) -> 
 	return db_user
 
 # --- Clocks ---
+# Each user can have only one active clock (i.e., a clock with clock_out == None) at a time.
+# If an active clock exists for the user, it will be closed (clock_out set to now) before a new clock is created.
 @app.post("/clocks/", response_model=ClockPublic)
 async def create_clock(clock: ClockCreate, session: Session = Depends(get_session)) -> ClockPublic:
 	statement = select(Clock).where(Clock.user_id == clock.user_id, Clock.clock_out.is_(None))
