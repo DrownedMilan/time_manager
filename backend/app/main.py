@@ -7,8 +7,7 @@ from datetime import datetime, timezone
 app = FastAPI(
 	title="Time Manager API",
 	description="API for managing users in a PostgreSQL database using FastAPI and SQLModel.",
-	version="1.0.0",
-	root_path="/api"
+	version="1.0.0"
 )
 
 from fastapi.middleware.cors import CORSMiddleware
