@@ -58,7 +58,6 @@ class User(SQLModel, table=True):
 		return f"{self.first_name} {self.last_name}"
 	
 # * User schemas *
-
 class UserCreate(SQLModel):
 	first_name: str
 	last_name: str
@@ -73,12 +72,14 @@ class UserPublic(SQLModel):
 	phone_number: str
 	created_at: datetime
 	clocks: list["ClockPublic"]
+	managed_team: Optional["Team"]
+	team: Optional["Team"]
 
 class UserUpdate(SQLModel):
-	first_name: Optional[str]
-	last_name: Optional[str]
-	email: Optional[EmailStr]
-	phone_number: Optional[str]
+	first_name: Optional[str] = None
+	last_name: Optional[str] = None
+	email: Optional[EmailStr] = None
+	phone_number: Optional[str] = None
 
 class UserMinimal(SQLModel):
 	id: int
@@ -129,7 +130,7 @@ class Team(SQLModel, table=True):
 class TeamCreate(SQLModel):
 	name: str
 	description: str
-	manager_id: Optional[int]
+	manager_id: Optional[int] = None
 	
 class TeamPublic(SQLModel):
 	id: int
@@ -141,9 +142,9 @@ class TeamPublic(SQLModel):
 	members: list[UserMinimal]
 
 class TeamUpdate(SQLModel):
-	name: Optional[str]
-	description: Optional[str]
-	manager_id: Optional[int]
+	name: Optional[str] = None
+	description: Optional[str] = None
+	manager_id: Optional[int] = None
 	# members: Optional[list[UserMinimal]]
 
 class TeamMinimal(SQLModel):
