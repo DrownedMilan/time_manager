@@ -7,8 +7,7 @@ from datetime import datetime, timezone
 app = FastAPI(
 	title="Time Manager API",
 	description="API for managing users in a PostgreSQL database using FastAPI and SQLModel.",
-	version="1.0.0",
-	root_path="/api"
+	version="1.0.0"
 )
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -28,7 +27,7 @@ def on_startup():
 
 @app.get("/")
 async def root():
-	return {"message": "Connected to PostgreSQL via SQLModel!"}
+	return {"message": "Connected to the PostgreSQL DB via SQLModel!"}
 
 # *** Users ***
 @app.post("/users", response_model=UserPublic)
