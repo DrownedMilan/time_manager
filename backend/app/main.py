@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import SQLModel, Session, select
 from app.database import engine, get_session
-from .models import User, Clock, UserCreate, UserPublic, UserUpdate, ClockCreate, ClockPublic, Team, TeamCreate, TeamPublic, TeamUpdate
+from .models import User, UserCreate, UserPublic, UserUpdate, Clock, ClockCreate, ClockPublic, Team, TeamCreate, TeamUpdate, TeamPublic
 from datetime import datetime, timezone
 
 app = FastAPI(
@@ -123,6 +123,10 @@ async def read_clock(clock_id: int, session: Session = Depends(get_session)) -> 
 # *** Teams ***
 @app.post("/teams/", response_model=TeamPublic)
 async def create_team(team: TeamCreate, session: Session = Depends(get_session)) -> TeamPublic:
+	if team.manager_id:
+		db_user = session.get(User, team.manager_id)
+		if not db_user:
+			raise HTTPException(status_code=404, detail="User not found")
 	existing_team = session.exec(select(Team).where(Team.name == team.name)).first()
 	if existing_team:
 		raise HTTPException(status_code=409, detail="Team already exists")
