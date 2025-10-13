@@ -175,6 +175,7 @@ async def create_team_member(team_id: int, user_id: int, session: Session = Depe
 	db_user.team_id = team_id
 	session.add(db_user)
 	session.commit()
+	session.refresh(db_team)
 	return db_team
 
 # Delete team member
@@ -191,6 +192,7 @@ async def delete_team_member(team_id: int, user_id: int, session: Session = Depe
 	db_user.team_id = None
 	session.add(db_user)
 	session.commit()
+	session.refresh(db_team)
 	return db_team
 
 @app.delete("/teams/{team_id}", response_model=TeamPublic)
