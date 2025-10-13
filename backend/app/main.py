@@ -28,7 +28,7 @@ def on_startup():
 
 @app.get("/")
 async def root():
-	return {"message": "Connected to PostgreSQL via SQLModel!"}
+	return {"message": "Connected to the PostgreSQL DB via SQLModel!"}
 
 # *** Users ***
 @app.post("/users", response_model=UserPublic)
