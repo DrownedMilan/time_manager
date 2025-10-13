@@ -1,31 +1,45 @@
 import { useEffect, useState } from 'react'
-import { getUsers } from '@/services/users' // appelle l’API pour récupérer tous les utilisateurs.
-import type { User } from '@/types/users' // Typescript(id, email, etc.).
-import axios from 'axios' // APPEL HTTP vers le back
-import { Box, Typography, Card, CardContent, Avatar, CircularProgress, Button } from '@mui/material'
+import { getUsers } from '@/services/users' // Appelle l’API pour récupérer tous les utilisateurs
+import type { User } from '@/types/users'
+import { api } from '@/services/api' //  on utilise l’instance axios configurée
+import {
+  Box,
+  Typography,
+  Card,
+  CardContent,
+  Avatar,
+  CircularProgress,
+  Button,
+} from '@mui/material'
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)  // booléen qui indique si les données sont encore en cours de chargement
-  const [processing, setProcessing] = useState<number | null>(null) // id de l’utilisateur
-  const [clockedUsers, setClockedUsers] = useState<number[]>([])
+  // 🧩 Déclaration des états React
+  const [users, setUsers] = useState<User[]>([]) // Liste des utilisateurs
+  const [loading, setLoading] = useState(true) // Chargement en cours ?
+  const [processing, setProcessing] = useState<number | null>(null) // ID de l’utilisateur cliqué
+  const [clockedUsers, setClockedUsers] = useState<number[]>([]) // IDs des utilisateurs actuellement “clockés”
 
-  //  Charger les utilisateurs + vérifier qui est clocké
+  // useEffect → s’exécute au montage du composant
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // 1️⃣ Récupération de la liste des utilisateurs
         const usersData = await getUsers()
         setUsers(Array.isArray(usersData) ? usersData : [])
 
-        
-        const clocksRes = await axios.get('http://127.0.0.1:8000/api/clocks/') // FASTAPI retourne tous les clocks
+        // Récupération de tous les clocks existants
+        const clocksRes = await api.get('/clocks/') //
         const clocksData = Array.isArray(clocksRes.data)
           ? clocksRes.data
           : clocksRes.data?.clocks || []
-        const activeClocks = clocksData.filter((c: any) => c.clock_out === null) // On garde uniquement les clocks qui n’ont pas encore d’heure de sortie (clock_out == null)
-        setClockedUsers(activeClocks.map((c: any) => c.user_id)) // On extrait les user_id des clocks actifs
+
+        // On garde uniquement ceux qui n’ont pas encore de "clock_out"
+        const activeClocks = clocksData.filter((c: any) => c.clock_out === null)
+
+        // On stocke la liste des user_id clockés
+        setClockedUsers(activeClocks.map((c: any) => c.user_id))
       } catch (err) {
-        console.error('Erreur chargement données :', err) // // Gestion d’erreur
+        console.error('❌ Erreur chargement données :', err)
       } finally {
         setLoading(false)
       }
@@ -34,19 +48,21 @@ export default function UsersPage() {
     fetchData()
   }, [])
 
-  // ✅ Clock IN / OUT
+  // 🕒 Fonction Clock IN / OUT
   const handleClock = async (userId: number) => {
     setProcessing(userId)
     try {
-      const res = await axios.post('http://127.0.0.1:8000/api/clocks/', {  // envoi d'une requete post vers api si le user --> pas clocké --> back crée une entrée --> si déjà clocké  --> back ferme l'entrée 
-        user_id: userId,
-      })
+      // ✅ Appel à l’API /clocks/
+      const res = await api.post('/clocks/', { user_id: userId })
+
+      // Si le back renvoie clock_out === null → Clock IN
       const isClockIn = res.data.clock_out === null
 
-      // // Si Clock IN → on ajoute l’utilisateur à la liste des clockés
       if (isClockIn) {
+        // Clock IN → ajoute l’utilisateur dans la liste
         setClockedUsers((prev) => [...prev, userId])
       } else {
+        // Clock OUT → retire l’utilisateur de la liste
         setClockedUsers((prev) => prev.filter((id) => id !== userId))
       }
     } catch (err) {
@@ -57,7 +73,7 @@ export default function UsersPage() {
     }
   }
 
-  // conditionnel : si loading → spinner
+  // Si les données chargent encore
   if (loading)
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
@@ -65,7 +81,8 @@ export default function UsersPage() {
       </Box>
     )
 
-  if (!Array.isArray(users) || users.length === 0) // si pas d'users dans le base
+  // Si aucun utilisateur trouvé
+  if (!Array.isArray(users) || users.length === 0)
     return (
       <Box sx={{ textAlign: 'center', mt: 10 }}>
         <Typography variant="h6" color="text.secondary">
@@ -74,11 +91,11 @@ export default function UsersPage() {
       </Box>
     )
 
-    // affichage principal
+  // Affichage principal
   return (
     <Box sx={{ p: 4 }}>
       <Typography variant="h4" gutterBottom>
-        Resume
+        Résumé
       </Typography>
 
       <Box
@@ -101,6 +118,7 @@ export default function UsersPage() {
                   justifyContent: 'space-between',
                 }}
               >
+                {/*  infos utilisateur */}
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <Avatar sx={{ bgcolor: 'primary.main', color: 'white', mr: 2 }}>
                     {u.first_name ? u.first_name[0].toUpperCase() : '?'}
@@ -118,6 +136,7 @@ export default function UsersPage() {
                   </Box>
                 </Box>
 
+                {/* bouton Clock IN / OUT */}
                 <Button
                   variant="contained"
                   color={isClockedIn ? 'secondary' : 'primary'}
