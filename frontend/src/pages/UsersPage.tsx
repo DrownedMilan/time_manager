@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getUsers } from '@/services/users' // Appelle l’API pour récupérer tous les utilisateurs
 import type { User } from '@/types/users'
-import { api } from '@/services/api' //  on utilise l’instance axios configurée
+import { api } from '@/services/api' //  Appelle l’API pour les clocks
 import {
   Box,
   Typography,
@@ -13,21 +13,21 @@ import {
 } from '@mui/material'
 
 export default function UsersPage() {
-  // 🧩 Déclaration des états React
-  const [users, setUsers] = useState<User[]>([]) // Liste des utilisateurs
-  const [loading, setLoading] = useState(true) // Chargement en cours ?
-  const [processing, setProcessing] = useState<number | null>(null) // ID de l’utilisateur cliqué
-  const [clockedUsers, setClockedUsers] = useState<number[]>([]) // IDs des utilisateurs actuellement “clockés”
+  //  Déclaration des états React
+  const [users, setUsers] = useState<User[]>([]) // Liste des utilisateurs via API
+  const [loading, setLoading] = useState(true) // Chargement en cours 
+  const [processing, setProcessing] = useState<number | null>(null) // ID de l’utilisateur sur lequel on clique
+  const [clockedUsers, setClockedUsers] = useState<number[]>([]) // ID des utilisateurs actuellement “clockés”
 
-  // useEffect → s’exécute au montage du composant
+  // useEffect → chargement initial
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1️⃣ Récupération de la liste des utilisateurs
+        // Récupération de la liste des utilisateurs
         const usersData = await getUsers()
         setUsers(Array.isArray(usersData) ? usersData : [])
 
-        // Récupération de tous les clocks existants
+        //2eme call API -->  Récupération de tous les clocks existants
         const clocksRes = await api.get('/clocks/') //
         const clocksData = Array.isArray(clocksRes.data)
           ? clocksRes.data
@@ -48,11 +48,11 @@ export default function UsersPage() {
     fetchData()
   }, [])
 
-  // 🕒 Fonction Clock IN / OUT
+  // Fonction Clock IN / OUT
   const handleClock = async (userId: number) => {
     setProcessing(userId)
     try {
-      // ✅ Appel à l’API /clocks/
+      // Appel à l’API /clocks/
       const res = await api.post('/clocks/', { user_id: userId })
 
       // Si le back renvoie clock_out === null → Clock IN
@@ -86,7 +86,7 @@ export default function UsersPage() {
     return (
       <Box sx={{ textAlign: 'center', mt: 10 }}>
         <Typography variant="h6" color="text.secondary">
-          Aucun utilisateur trouvé
+          No users found.
         </Typography>
       </Box>
     )
@@ -95,7 +95,7 @@ export default function UsersPage() {
   return (
     <Box sx={{ p: 4 }}>
       <Typography variant="h4" gutterBottom>
-        Résumé
+        Resume
       </Typography>
 
       <Box
