@@ -3,3 +3,5 @@ sqlmodel
 psycopg2-binary>=2.9
 python-dotenv==1.0.0
 phonenumbers
+python-keycloak>=4.1.0
+fastapi-keycloak>=1.0.0
