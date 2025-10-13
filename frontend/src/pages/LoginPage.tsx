@@ -7,10 +7,9 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault()
-  alert(`Email: ${email}\nPassword: ${password}`)
-}
-
+    e.preventDefault()
+    alert(`Email: ${email}\nPassword: ${password}`)
+  }
 
   return (
     <Box
