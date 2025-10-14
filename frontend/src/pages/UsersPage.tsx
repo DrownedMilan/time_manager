@@ -28,7 +28,7 @@ export default function UsersPage() {
 				setUsers(Array.isArray(usersData) ? usersData : [])
 
 				//2eme call API -->  Récupération de tous les clocks existants
-				const clocksRes = await api.get('/clocks') //
+				const clocksRes = await api.get('/clocks/') //
 				const clocksData = Array.isArray(clocksRes.data)
 					? clocksRes.data
 					: clocksRes.data?.clocks || []
@@ -53,7 +53,7 @@ export default function UsersPage() {
 		setProcessing(userId)
 		try {
 			// Appel à l’API /clocks
-			const res = await api.post('/clocks', { user_id: userId })
+			const res = await api.post('/clocks/', { user_id: userId })
 
 			// Si le back renvoie clock_out === null → Clock IN
 			const isClockIn = res.data.clock_out === null

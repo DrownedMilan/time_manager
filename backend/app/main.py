@@ -7,7 +7,9 @@ from datetime import datetime, timezone
 app = FastAPI(
 	title="Time Manager API",
 	description="API for managing users in a PostgreSQL database using FastAPI and SQLModel.",
-	version="1.0.0"
+	version="1.0.0",
+	# root_path="/api", Add in production
+	redirect_slashes=False
 )
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,7 +32,7 @@ async def root():
 	return {"message": "Connected to the PostgreSQL DB via SQLModel!"}
 
 # *** Users ***
-@app.post("/users", response_model=UserPublic)
+@app.post("/users/", response_model=UserPublic)
 async def create_user(user: UserCreate, session: Session = Depends(get_session)) -> UserPublic:
 	existing_user = session.exec(select(User).where((User.email == user.email) | (User.phone_number == user.phone_number))).first()
 	if existing_user:
@@ -44,7 +46,7 @@ async def create_user(user: UserCreate, session: Session = Depends(get_session))
 	session.refresh(db_user)
 	return db_user
 
-@app.get("/users", response_model=list[UserPublic])
+@app.get("/users/", response_model=list[UserPublic])
 async def read_users(session: Session = Depends(get_session)) -> list[UserPublic]:
 	db_users = session.exec(select(User)).all()
 	return db_users
@@ -68,7 +70,7 @@ async def update_user(user_id: int, user: UserUpdate, session: Session = Depends
 	session.refresh(db_user)
 	return db_user
 
-@app.get("/users/{user_id}/clocks", response_model=list[ClockPublic])
+@app.get("/users/{user_id}/clocks/", response_model=list[ClockPublic])
 async def read_user_clocks(user_id: int, session: Session = Depends(get_session)) -> list[ClockPublic]:
 	statement = select(Clock).where(Clock.user_id == user_id)
 	user_clocks = session.exec(statement).all()
@@ -86,7 +88,7 @@ async def delete_user(user_id: int, session: Session = Depends(get_session)) -> 
 # *** Clocks ***
 # Each user can have only one active clock (i.e., a clock with clock_out == None) at a time.
 # If an active clock exists for the user, it will be closed (clock_out set to now) before a new clock is created.
-@app.post("/clocks", response_model=ClockPublic)
+@app.post("/clocks/", response_model=ClockPublic)
 async def create_clock(clock: ClockCreate, session: Session = Depends(get_session)) -> ClockPublic:
 	db_user = session.get(User, clock.user_id)
 	if not db_user:
@@ -107,7 +109,7 @@ async def create_clock(clock: ClockCreate, session: Session = Depends(get_sessio
 	session.refresh(new_clock)
 	return new_clock
 
-@app.get("/clocks", response_model=list[ClockPublic])
+@app.get("/clocks/", response_model=list[ClockPublic])
 async def read_clocks(session: Session = Depends(get_session)) -> list[ClockPublic]:
 	db_clocks = session.exec(select(Clock)).all()
 	return db_clocks
@@ -120,7 +122,7 @@ async def read_clock(clock_id: int, session: Session = Depends(get_session)) -> 
 	return db_clock
 
 # *** Teams ***
-@app.post("/teams", response_model=TeamPublic)
+@app.post("/teams/", response_model=TeamPublic)
 async def create_team(team: TeamCreate, session: Session = Depends(get_session)) -> TeamPublic:
 	if team.manager_id:
 		db_user = session.get(User, team.manager_id)
@@ -135,7 +137,7 @@ async def create_team(team: TeamCreate, session: Session = Depends(get_session))
 	session.refresh(db_team)
 	return db_team
 
-@app.get("/teams", response_model=list[TeamPublic])
+@app.get("/teams/", response_model=list[TeamPublic])
 async def read_teams(session: Session = Depends(get_session)) -> list[TeamPublic]:
 	db_teams = session.exec(select(Team)).all()
 	return db_teams
