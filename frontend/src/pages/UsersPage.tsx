@@ -3,154 +3,154 @@ import { getUsers } from '@/services/users' // Appelle l’API pour récupérer 
 import type { User } from '@/types/users'
 import { api } from '@/services/api' //  Appelle l’API pour les clocks
 import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  Avatar,
-  CircularProgress,
-  Button,
+	Box,
+	Typography,
+	Card,
+	CardContent,
+	Avatar,
+	CircularProgress,
+	Button,
 } from '@mui/material'
 
 export default function UsersPage() {
-  //  Déclaration des états React
-  const [users, setUsers] = useState<User[]>([]) // Liste des utilisateurs via API
-  const [loading, setLoading] = useState(true) // Chargement en cours 
-  const [processing, setProcessing] = useState<number | null>(null) // ID de l’utilisateur sur lequel on clique
-  const [clockedUsers, setClockedUsers] = useState<number[]>([]) // ID des utilisateurs actuellement “clockés”
+	//  Déclaration des états React
+	const [users, setUsers] = useState<User[]>([]) // Liste des utilisateurs via API
+	const [loading, setLoading] = useState(true) // Chargement en cours 
+	const [processing, setProcessing] = useState<number | null>(null) // ID de l’utilisateur sur lequel on clique
+	const [clockedUsers, setClockedUsers] = useState<number[]>([]) // ID des utilisateurs actuellement “clockés”
 
-  // useEffect → chargement initial
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Récupération de la liste des utilisateurs
-        const usersData = await getUsers()
-        setUsers(Array.isArray(usersData) ? usersData : [])
+	// useEffect → chargement initial
+	useEffect(() => {
+		const fetchData = async () => {
+			try {
+				// Récupération de la liste des utilisateurs
+				const usersData = await getUsers()
+				setUsers(Array.isArray(usersData) ? usersData : [])
 
-        //2eme call API -->  Récupération de tous les clocks existants
-        const clocksRes = await api.get('/clocks/') //
-        const clocksData = Array.isArray(clocksRes.data)
-          ? clocksRes.data
-          : clocksRes.data?.clocks || []
+				//2eme call API -->  Récupération de tous les clocks existants
+				const clocksRes = await api.get('/clocks') //
+				const clocksData = Array.isArray(clocksRes.data)
+					? clocksRes.data
+					: clocksRes.data?.clocks || []
 
-        // On garde uniquement ceux qui n’ont pas encore de "clock_out"
-        const activeClocks = clocksData.filter((c: any) => c.clock_out === null)
+				// On garde uniquement ceux qui n’ont pas encore de "clock_out"
+				const activeClocks = clocksData.filter((c: any) => c.clock_out === null)
 
-        // On stocke la liste des user_id clockés
-        setClockedUsers(activeClocks.map((c: any) => c.user_id))
-      } catch (err) {
-        console.error('❌ Erreur chargement données :', err)
-      } finally {
-        setLoading(false)
-      }
-    }
+				// On stocke la liste des user_id clockés
+				setClockedUsers(activeClocks.map((c: any) => c.user_id))
+			} catch (err) {
+				console.error('❌ Erreur chargement données :', err)
+			} finally {
+				setLoading(false)
+			}
+		}
 
-    fetchData()
-  }, [])
+		fetchData()
+	}, [])
 
-  // Fonction Clock IN / OUT
-  const handleClock = async (userId: number) => {
-    setProcessing(userId)
-    try {
-      // Appel à l’API /clocks/
-      const res = await api.post('/clocks/', { user_id: userId })
+	// Fonction Clock IN / OUT
+	const handleClock = async (userId: number) => {
+		setProcessing(userId)
+		try {
+			// Appel à l’API /clocks
+			const res = await api.post('/clocks', { user_id: userId })
 
-      // Si le back renvoie clock_out === null → Clock IN
-      const isClockIn = res.data.clock_out === null
+			// Si le back renvoie clock_out === null → Clock IN
+			const isClockIn = res.data.clock_out === null
 
-      if (isClockIn) {
-        // Clock IN → ajoute l’utilisateur dans la liste
-        setClockedUsers((prev) => [...prev, userId])
-      } else {
-        // Clock OUT → retire l’utilisateur de la liste
-        setClockedUsers((prev) => prev.filter((id) => id !== userId))
-      }
-    } catch (err) {
-      console.error('❌ Erreur Clock:', err)
-      alert('Erreur pendant Clock In/Out')
-    } finally {
-      setProcessing(null)
-    }
-  }
+			if (isClockIn) {
+				// Clock IN → ajoute l’utilisateur dans la liste
+				setClockedUsers((prev) => [...prev, userId])
+			} else {
+				// Clock OUT → retire l’utilisateur de la liste
+				setClockedUsers((prev) => prev.filter((id) => id !== userId))
+			}
+		} catch (err) {
+			console.error('❌ Erreur Clock:', err)
+			alert('Erreur pendant Clock In/Out')
+		} finally {
+			setProcessing(null)
+		}
+	}
 
-  // Si les données chargent encore
-  if (loading)
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-        <CircularProgress />
-      </Box>
-    )
+	// Si les données chargent encore
+	if (loading)
+		return (
+			<Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+				<CircularProgress />
+			</Box>
+		)
 
-  // Si aucun utilisateur trouvé
-  if (!Array.isArray(users) || users.length === 0)
-    return (
-      <Box sx={{ textAlign: 'center', mt: 10 }}>
-        <Typography variant="h6" color="text.secondary">
-          No users found.
-        </Typography>
-      </Box>
-    )
+	// Si aucun utilisateur trouvé
+	if (!Array.isArray(users) || users.length === 0)
+		return (
+			<Box sx={{ textAlign: 'center', mt: 10 }}>
+				<Typography variant="h6" color="text.secondary">
+					No users found.
+				</Typography>
+			</Box>
+		)
 
-  // Affichage principal
-  return (
-    <Box sx={{ p: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Resume
-      </Typography>
+	// Affichage principal
+	return (
+		<Box sx={{ p: 4 }}>
+			<Typography variant="h4" gutterBottom>
+				Resume
+			</Typography>
 
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(265px, 2fr))',
-          gap: 2,
-          backgroundColor: '#fdfdfdff',
-          minHeight: '60vh',
-        }}
-      >
-        {users.map((u) => {
-          const isClockedIn = clockedUsers.includes(u.id)
-          return (
-            <Card key={u.id} elevation={3} sx={{ borderRadius: 3 }}>
-              <CardContent
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                {/*  infos utilisateur */}
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Avatar sx={{ bgcolor: 'primary.main', color: 'white', mr: 2 }}>
-                    {u.first_name ? u.first_name[0].toUpperCase() : '?'}
-                  </Avatar>
-                  <Box>
-                    <Typography variant="h6" sx={{ color: '#040605ff' }}>
-                      {u.first_name} {u.last_name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {u.email}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {u.phone_number}
-                    </Typography>
-                  </Box>
-                </Box>
+			<Box
+				sx={{
+					display: 'grid',
+					gridTemplateColumns: 'repeat(auto-fill, minmax(265px, 2fr))',
+					gap: 2,
+					backgroundColor: '#fdfdfdff',
+					minHeight: '60vh',
+				}}
+			>
+				{users.map((u) => {
+					const isClockedIn = clockedUsers.includes(u.id)
+					return (
+						<Card key={u.id} elevation={3} sx={{ borderRadius: 3 }}>
+							<CardContent
+								sx={{
+									display: 'flex',
+									alignItems: 'center',
+									justifyContent: 'space-between',
+								}}
+							>
+								{/*  infos utilisateur */}
+								<Box sx={{ display: 'flex', alignItems: 'center' }}>
+									<Avatar sx={{ bgcolor: 'primary.main', color: 'white', mr: 2 }}>
+										{u.first_name ? u.first_name[0].toUpperCase() : '?'}
+									</Avatar>
+									<Box>
+										<Typography variant="h6" sx={{ color: '#040605ff' }}>
+											{u.first_name} {u.last_name}
+										</Typography>
+										<Typography variant="body2" color="text.secondary">
+											{u.email}
+										</Typography>
+										<Typography variant="body2" color="text.secondary">
+											{u.phone_number}
+										</Typography>
+									</Box>
+								</Box>
 
-                {/* bouton Clock IN / OUT */}
-                <Button
-                  variant="contained"
-                  color={isClockedIn ? 'secondary' : 'primary'}
-                  size="small"
-                  disabled={processing === u.id}
-                  onClick={() => handleClock(u.id)}
-                >
-                  {processing === u.id ? '...' : isClockedIn ? 'Clock OUT' : 'Clock IN'}
-                </Button>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </Box>
-    </Box>
-  )
+								{/* bouton Clock IN / OUT */}
+								<Button
+									variant="contained"
+									color={isClockedIn ? 'secondary' : 'primary'}
+									size="small"
+									disabled={processing === u.id}
+									onClick={() => handleClock(u.id)}
+								>
+									{processing === u.id ? '...' : isClockedIn ? 'Clock OUT' : 'Clock IN'}
+								</Button>
+							</CardContent>
+						</Card>
+					)
+				})}
+			</Box>
+		</Box>
+	)
 }
