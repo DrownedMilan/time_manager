@@ -34,7 +34,15 @@ services:
       - .env
     volumes:
       - ./backend/app:/code/app
-
+    command: [
+     "uvicorn",
+     "app.admin_panel:app",
+     "--host", "0.0.0.0",
+     "--port", "80",
+     "--reload",
+     "--proxy-headers"
+      ]
+      
   # FRONTEND
   frontend:
     container_name: frontend
