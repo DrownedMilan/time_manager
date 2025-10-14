@@ -1,156 +1,203 @@
 import { useEffect, useState } from 'react'
-import { getUsers } from '@/services/users' // Appelle l’API pour récupérer tous les utilisateurs
+import { api } from '@/services/api'
+import { getUserClocks, toggleClock } from '@/services/clocks'
 import type { User } from '@/types/users'
-import { api } from '@/services/api' //  Appelle l’API pour les clocks
 import {
-	Box,
-	Typography,
-	Card,
-	CardContent,
-	Avatar,
-	CircularProgress,
-	Button,
+  Box,
+  Typography,
+  Card,
+  Avatar,
+  Button,
+  CircularProgress,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TableSortLabel,
 } from '@mui/material'
 
-export default function UsersPage() {
-	//  Déclaration des états React
-	const [users, setUsers] = useState<User[]>([]) // Liste des utilisateurs via API
-	const [loading, setLoading] = useState(true) // Chargement en cours 
-	const [processing, setProcessing] = useState<number | null>(null) // ID de l’utilisateur sur lequel on clique
-	const [clockedUsers, setClockedUsers] = useState<number[]>([]) // ID des utilisateurs actuellement “clockés”
+export default function UserPage() {
+  const USER_ID = 1 // utilisateur fixe / données en dur
 
-	// useEffect → chargement initial
-	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				// Récupération de la liste des utilisateurs
-				const usersData = await getUsers()
-				setUsers(Array.isArray(usersData) ? usersData : [])
+  const [user, setUser] = useState<User | null>(null)
+  const [clocks, setClocks] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [processing, setProcessing] = useState(false)
+  const [isClockedIn, setIsClockedIn] = useState(false)
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
-				//2eme call API -->  Récupération de tous les clocks existants
-				const clocksRes = await api.get('/clocks/') //
-				const clocksData = Array.isArray(clocksRes.data)
-					? clocksRes.data
-					: clocksRes.data?.clocks || []
+  // --- CHARGEMENT DES DONNÉES UTILISATEUR + CLOCKS ---
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const userRes = await api.get(`/users/${USER_ID}`)
+        setUser(userRes.data)
 
-				// On garde uniquement ceux qui n’ont pas encore de "clock_out"
-				const activeClocks = clocksData.filter((c: any) => c.clock_out === null)
+        const userClocks = await getUserClocks(USER_ID)
+        setClocks(userClocks)
 
-				// On stocke la liste des user_id clockés
-				setClockedUsers(activeClocks.map((c: any) => c.user_id))
-			} catch (err) {
-				console.error('❌ Erreur chargement données :', err)
-			} finally {
-				setLoading(false)
-			}
-		}
+        // Vérifie si un clock actif existe
+        const activeClock = userClocks.some((c: any) => c.clock_out === null)
+        setIsClockedIn(activeClock)
+      } catch (err) {
+        console.error('❌ Error Loading user :', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
 
-		fetchData()
-	}, [])
+  // --- CLOCK IN / OUT ---
+  const handleClock = async () => {
+    setProcessing(true)
+    try {
+      const res = await toggleClock(USER_ID)
+      const updatedClocks = await getUserClocks(USER_ID)
+      setClocks(updatedClocks)
+      setIsClockedIn(res.clock_out === null)
+    } catch (err) {
+      alert('Error during Clock In/Out')
+    } finally {
+      setProcessing(false)
+    }
+  }
 
-	// Fonction Clock IN / OUT
-	const handleClock = async (userId: number) => {
-		setProcessing(userId)
-		try {
-			// Appel à l’API /clocks
-			const res = await api.post('/clocks/', { user_id: userId })
+  // --- TRI DES CLOCKS ---
+  const sortedClocks = [...clocks].sort((a, b) => {
+    const dateA = new Date(a.clock_in).getTime()
+    const dateB = new Date(b.clock_in).getTime()
+    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
+  })
 
-			// Si le back renvoie clock_out === null → Clock IN
-			const isClockIn = res.data.clock_out === null
+  const handleSort = () => {
+    setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+  }
 
-			if (isClockIn) {
-				// Clock IN → ajoute l’utilisateur dans la liste
-				setClockedUsers((prev) => [...prev, userId])
-			} else {
-				// Clock OUT → retire l’utilisateur de la liste
-				setClockedUsers((prev) => prev.filter((id) => id !== userId))
-			}
-		} catch (err) {
-			console.error('❌ Erreur Clock:', err)
-			alert('Erreur pendant Clock In/Out')
-		} finally {
-			setProcessing(null)
-		}
-	}
+  // --- AFFICHAGE EN CAS DE CHARGEMENT / ERREUR ---
+  if (loading)
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+        <CircularProgress />
+      </Box>
+    )
 
-	// Si les données chargent encore
-	if (loading)
-		return (
-			<Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
-				<CircularProgress />
-			</Box>
-		)
+  if (!user)
+    return (
+      <Box sx={{ textAlign: 'center', mt: 10 }}>
+        <Typography variant="h6" color="text.secondary">
+          No user found.
+        </Typography>
+      </Box>
+    )
 
-	// Si aucun utilisateur trouvé
-	if (!Array.isArray(users) || users.length === 0)
-		return (
-			<Box sx={{ textAlign: 'center', mt: 10 }}>
-				<Typography variant="h6" color="text.secondary">
-					No users found.
-				</Typography>
-			</Box>
-		)
+  // --- AFFICHAGE PRINCIPAL ---
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'row', p: 4, gap: 3 }}>
+      {/* --- CARTE UTILISATEUR --- */}
+      <Card
+        elevation={3}
+        sx={{
+          width: 320,
+          height: 'fit-content',
+          borderRadius: 3,
+          p: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}
+      >
+        <Avatar sx={{ bgcolor: 'primary.main', color: 'white', mb: 2, width: 64, height: 64 }}>
+          {user.first_name ? user.first_name[0].toUpperCase() : '?'}
+        </Avatar>
+        <Typography variant="h5" sx={{ color: '#040605ff', mb: 1 }}>
+          {user.first_name} {user.last_name}
+		  
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {user.email}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          {user.phone_number}
+        </Typography>
 
-	// Affichage principal
-	return (
-		<Box sx={{ p: 4 }}>
-			<Typography variant="h4" gutterBottom>
-				Resume
-			</Typography>
+        <Button
+          variant="contained"
+          color={isClockedIn ? 'secondary' : 'primary'}
+          disabled={processing}
+          onClick={handleClock}
+        >
+          {processing ? '...' : isClockedIn ? 'Clock OUT' : 'Clock IN'}
+        </Button>
 
-			<Box
-				sx={{
-					display: 'grid',
-					gridTemplateColumns: 'repeat(auto-fill, minmax(265px, 2fr))',
-					gap: 2,
-					backgroundColor: '#fdfdfdff',
-					minHeight: '60vh',
-				}}
-			>
-				{users.map((u) => {
-					const isClockedIn = clockedUsers.includes(u.id)
-					return (
-						<Card key={u.id} elevation={3} sx={{ borderRadius: 3 }}>
-							<CardContent
-								sx={{
-									display: 'flex',
-									alignItems: 'center',
-									justifyContent: 'space-between',
-								}}
-							>
-								{/*  infos utilisateur */}
-								<Box sx={{ display: 'flex', alignItems: 'center' }}>
-									<Avatar sx={{ bgcolor: 'primary.main', color: 'white', mr: 2 }}>
-										{u.first_name ? u.first_name[0].toUpperCase() : '?'}
-									</Avatar>
-									<Box>
-										<Typography variant="h6" sx={{ color: '#040605ff' }}>
-											{u.first_name} {u.last_name}
-										</Typography>
-										<Typography variant="body2" color="text.secondary">
-											{u.email}
-										</Typography>
-										<Typography variant="body2" color="text.secondary">
-											{u.phone_number}
-										</Typography>
-									</Box>
-								</Box>
+        {/* --- ÉTAT ACTIF / INACTIF --- */}
+        <Typography
+          variant="body2"
+          sx={{
+            mt: 2,
+            fontWeight: 600,
+            color: isClockedIn ? 'green' : 'red',
+          }}
+        >
+          {isClockedIn ? '🟢 Active' : '🔴 Inactive'}
+        </Typography>
+      </Card>
 
-								{/* bouton Clock IN / OUT */}
-								<Button
-									variant="contained"
-									color={isClockedIn ? 'secondary' : 'primary'}
-									size="small"
-									disabled={processing === u.id}
-									onClick={() => handleClock(u.id)}
-								>
-									{processing === u.id ? '...' : isClockedIn ? 'Clock OUT' : 'Clock IN'}
-								</Button>
-							</CardContent>
-						</Card>
-					)
-				})}
-			</Box>
-		</Box>
-	)
+      {/* --- Historic clocks --- */}
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="h5" align="center" gutterBottom>
+          <b>Time Card History</b>
+        </Typography>
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>
+                  <b>Number</b>
+                </TableCell>
+                <TableCell>
+                  <TableSortLabel
+                    active={true}
+                    direction={sortOrder}
+                    onClick={handleSort}
+                  >
+                    <b>Clock IN</b>
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell>
+                  <b>Clock OUT</b>
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {sortedClocks.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={3} align="center">
+                    No scorings found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                sortedClocks.map((clock: any) => (
+                  <TableRow key={clock.id}>
+                    <TableCell>{clock.id}</TableCell>
+                    <TableCell>{new Date(clock.clock_in).toLocaleString()}</TableCell>
+                    <TableCell>
+                      {clock.clock_out ? (
+                        new Date(clock.clock_out).toLocaleString()
+                      ) : (
+                        <span style={{ color: 'green', fontWeight: 600 }}>In progress</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Box>
+    </Box>
+  )
 }
