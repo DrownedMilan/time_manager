@@ -28,7 +28,6 @@ class User(SQLModel, table=True):
 	)
 
 	# - Validators -
-
 	@field_validator("first_name")
 	def normalize_first_name(cls, v):
 		return v.strip().capitalize()
@@ -64,6 +63,28 @@ class UserCreate(SQLModel):
 	email: EmailStr
 	phone_number: str
 
+	@field_validator("first_name")
+	def normalize_first_name(cls, v):
+		return v.strip().capitalize()
+
+	@field_validator("last_name")
+	def normalize_last_name(cls, v):
+			return v.strip().upper()
+	
+	@field_validator("email")
+	def normalize_email(cls, v):
+			return v.strip().lower()
+	
+	@field_validator("phone_number")
+	def validate_phone_number(cls, v):
+			try:
+					number = phonenumbers.parse(v, "FR")
+					if not phonenumbers.is_valid_number(number):
+							raise ValueError("Invalid phone number")
+					return phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+			except phonenumbers.NumberParseException:
+					raise ValueError("Invalid phone number format")
+
 class UserPublic(SQLModel):
 	id: int
 	first_name: str
@@ -80,6 +101,28 @@ class UserUpdate(SQLModel):
 	last_name: Optional[str] = None
 	email: Optional[EmailStr] = None
 	phone_number: Optional[str] = None
+
+	@field_validator("first_name")
+	def normalize_first_name(cls, v):
+		return v.strip().capitalize()
+
+	@field_validator("last_name")
+	def normalize_last_name(cls, v):
+			return v.strip().upper()
+	
+	@field_validator("email")
+	def normalize_email(cls, v):
+			return v.strip().lower()
+	
+	@field_validator("phone_number")
+	def validate_phone_number(cls, v):
+			try:
+					number = phonenumbers.parse(v, "FR")
+					if not phonenumbers.is_valid_number(number):
+							raise ValueError("Invalid phone number")
+					return phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
+			except phonenumbers.NumberParseException:
+					raise ValueError("Invalid phone number format")
 
 class UserMinimal(SQLModel):
 	id: int
