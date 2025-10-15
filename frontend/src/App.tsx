@@ -1,15 +1,10 @@
 import { BrowserRouter } from 'react-router-dom'
 import AppRoutes from '@/routes'
 
-interface AppProps {
-  toggleTheme: () => void
-  mode: 'light' | 'dark'
-}
-
-export default function App({ toggleTheme, mode }: AppProps) {
+export default function App() {
   return (
     <BrowserRouter>
-      <AppRoutes toggleTheme={toggleTheme} mode={mode} />
+      <AppRoutes />
     </BrowserRouter>
   )
 }

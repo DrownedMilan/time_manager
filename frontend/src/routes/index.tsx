@@ -2,19 +2,12 @@ import { Routes, Route } from 'react-router-dom'
 import AppLayout from '@/layouts/AppLayout'
 import UsersPage from '@/pages/UsersPage'
 import LoginPage from '@/pages/LoginPage'
-// import DashboardPage from '@/pages/DashboardPage'
-// import LoginPage from '@/pages/LoginPage'
 
-interface AppRoutesProps {
-  toggleTheme: () => void
-  mode: 'light' | 'dark'
-}
-
-export default function AppRoutes({ toggleTheme, mode }: AppRoutesProps) {
+export default function AppRoutes() {
   return (
     <Routes>
       {/* Layout principal */}
-      <Route element={<AppLayout toggleTheme={toggleTheme} mode={mode} />}>
+      <Route element={<AppLayout />}>
         {/* <Route path="/" element={<DashboardPage />} /> */}
         <Route path="/" element={<UsersPage />} />
       </Route>
