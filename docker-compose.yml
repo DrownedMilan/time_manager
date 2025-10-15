@@ -65,13 +65,14 @@ services:
   #   image: nginx:1.28.0-alpine3.21
   #   depends_on:
   #     - frontend
-  #     # - ++ak
+  #     - backend
   #   ports:
   #     - "80:80"
   #   restart: always
   #   command: [ "nginx", "-g", "daemon off;", "-c", "/etc/nginx/nginx.conf" ]
   #   volumes:
   #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./frontend/dist:/usr/share/nginx/html:ro
 
   nginx:
     image: nginx:1.28.0-alpine3.21
@@ -85,3 +86,33 @@ services:
       - frontend
       - backend
     restart: always
+
+  # 🧠 SONARQUBE (local analysis)
+  sonarqube:
+    image: sonarqube:lts-community
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    restart: unless-stopped
+
+  # 🗃️ SONARQUBE DATABASE
+  sonardb:
+    image: postgres:15
+    container_name: sonardb
+    environment:
+      POSTGRES_USER: sonar
+      POSTGRES_PASSWORD: sonar
+      POSTGRES_DB: sonar
+    volumes:
+      - sonardb_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonardb_data:
