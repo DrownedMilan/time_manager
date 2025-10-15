@@ -56,6 +56,11 @@ class User(SQLModel, table=True):
 	def full_name(self) -> str:
 		return f"{self.first_name} {self.last_name}"
 	
+	def __repr__(self) -> str:  # explicit override
+			return f"[{self.id}] {self.last_name} {self.first_name} - {self.email}"
+
+	__str__ = __repr__  # ✅ ensure both behave the same
+	
 # * User schemas *
 class UserCreate(SQLModel):
 	first_name: str
