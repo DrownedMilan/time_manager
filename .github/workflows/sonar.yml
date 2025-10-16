@@ -41,3 +41,16 @@ jobs:
             -Dsonar.projectKey=DrownedMilan_time_manager
             -Dsonar.python.coverage.reportPaths=coverage.xml
             -Dsonar.sources=backend/app
+
+      - name: Send Discord Notification
+        if: always()  # s’exécute même si le build échoue
+        run: |
+          STATUS="✅ Build succeeded"
+          if [ "${{ job.status }}" != "success" ]; then
+            STATUS="❌ Build failed"
+          fi
+          BRANCH="${GITHUB_REF_NAME}"
+          MESSAGE="🚀 New push on branch **$BRANCH** by **${{ github.actor }}**\nStatus: $STATUS\n🔗 [View run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})"
+          curl -H "Content-Type: application/json" \
+               -d "{\"content\": \"$MESSAGE\"}" \
+               ${{ secrets.DISCORD_WEBHOOK_URL }}
