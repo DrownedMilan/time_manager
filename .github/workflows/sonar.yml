@@ -24,17 +24,18 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r backend/requirements.txt
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt
 
       - name: Run tests (optional)
+        working-directory: backend
         run: |
-          cd backend
-          pytest --maxfail=1 --disable-warnings -q || true
+          python -m pytest --maxfail=1 --disable-warnings -q || true
 
       - name: Run SonarQube Scan
         uses: SonarSource/sonarcloud-github-action@v2
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   #secret icicccc
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         with:
           args: >
             -Dsonar.organization=drownedmilan
@@ -43,7 +44,7 @@ jobs:
             -Dsonar.sources=backend/app
 
       - name: Send Discord Notification
-        if: always()  # s’exécute même si le build échoue
+        if: always()
         run: |
           STATUS="✅ Build succeeded"
           if [ "${{ job.status }}" != "success" ]; then
