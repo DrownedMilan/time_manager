@@ -3,9 +3,11 @@ name: SonarQube Scan (Python)
 on:
   push:
     branches:
+      - main
       - dev
   pull_request:
     branches:
+      - main
       - dev
 
 jobs:
@@ -23,7 +25,6 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r backend/requirements.txt
-          pip install sonar-scanner-cli
 
       - name: Run tests (optional)
         run: |
@@ -31,13 +32,12 @@ jobs:
           pytest --maxfail=1 --disable-warnings -q || true
 
       - name: Run SonarQube Scan
+        uses: SonarSource/sonarcloud-github-action@v2
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        run: |
-          sonar-scanner \
-            -Dsonar.projectKey=time_manager \
-            -Dsonar.sources=backend/app \
-            -Dsonar.python.coverage.reportPaths=coverage.xml \
-            -Dsonar.host.url=$SONAR_HOST_URL \
-            -Dsonar.login=$SONAR_TOKEN
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKENNN }}   #secret icicccc
+        with:
+          args: >
+            -Dsonar.organization=drownedmilan
+            -Dsonar.projectKey=DrownedMilan_time_manager
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.sources=backend/app
