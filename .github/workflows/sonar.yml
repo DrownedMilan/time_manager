@@ -42,7 +42,7 @@ jobs:
             -Dsonar.python.coverage.reportPaths=coverage.xml
             -Dsonar.sources=backend/app
 
-      - name: Send Discord Notification
+      - name: Send Discord Notification             # DISCORD NOTIF
         if: always()  # s’exécute même si le build échoue
         run: |
           STATUS="✅ Build succeeded"
