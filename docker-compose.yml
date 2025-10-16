@@ -18,6 +18,8 @@ services:
     restart: always
     volumes:
       - ./.postgres_db:/var/lib/postgresql/data/
+    networks:
+      - appnet
 
   # BACKEND
   backend:
@@ -35,14 +37,16 @@ services:
     volumes:
       - ./backend/app:/code/app
     command: [
-     "uvicorn",
-     "app.admin_panel:app",
-     "--host", "0.0.0.0",
-     "--port", "80",
-     "--reload",
-     "--proxy-headers"
-      ]
-      
+      "uvicorn",
+      "app.admin_panel:app",
+      "--host", "0.0.0.0",
+      "--port", "80",
+      "--reload",
+      "--proxy-headers"
+    ]
+    networks:
+      - appnet
+
   # FRONTEND
   frontend:
     container_name: frontend
@@ -58,22 +62,10 @@ services:
     depends_on:
       - backend
     restart: unless-stopped
+    networks:
+      - appnet
 
   # NGINX (Reverse Proxy)
-  # nginx:
-  #   container_name: nginx
-  #   image: nginx:1.28.0-alpine3.21
-  #   depends_on:
-  #     - frontend
-  #     - backend
-  #   ports:
-  #     - "80:80"
-  #   restart: always
-  #   command: [ "nginx", "-g", "daemon off;", "-c", "/etc/nginx/nginx.conf" ]
-  #   volumes:
-  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-  #     - ./frontend/dist:/usr/share/nginx/html:ro
-
   nginx:
     image: nginx:1.28.0-alpine3.21
     container_name: nginx
@@ -81,8 +73,71 @@ services:
       - "4000:80"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./frontend/dist:/usr/share/nginx/html:ro
+      # - ./frontend/dist:/usr/share/nginx/html:ro   # utile si tu sers le build statique
     depends_on:
       - frontend
       - backend
+      - keycloak
     restart: always
+    networks:
+      - appnet
+
+  # --- KEYCLOAK DB (séparée) ---
+  keycloak-db:
+    image: postgres:17-bookworm
+    container_name: keycloak-db
+    environment:
+      POSTGRES_USER: kc_user
+      POSTGRES_PASSWORD: kc_password
+      POSTGRES_DB: keycloak
+    volumes:
+      - ./.postgres_kc:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kc_user -d keycloak"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: always
+    networks:
+      - appnet
+
+  # --- KEYCLOAK ---
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4.0
+    container_name: keycloak
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+
+      # DB
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_DB_USERNAME: kc_user
+      KC_DB_PASSWORD: kc_password
+
+      # <<< IMPORTANT derrière Nginx >>>
+      # 1) URL publique EXACTE (avec /auth) vue par le navigateur
+      KC_HOSTNAME: http://localhost:4000/auth
+      # 2) Keycloak doit interpréter les X-Forwarded-*
+      KC_PROXY_HEADERS: xforwarded
+      # 3) On parle en HTTP entre Nginx -> Keycloak (port 8080)
+      KC_HTTP_ENABLED: "true"
+      # 4) Keycloak sert lui-même sous /auth (aligne le contexte)
+      KC_HTTP_RELATIVE_PATH: /auth
+      # 5) Tant qu’on est en dev, pas de strict hostname
+      KC_HOSTNAME_STRICT: "false"
+    command: ["start-dev"]
+    ports:
+      - "8080:8080"   # debug optionnel
+    restart: unless-stopped
+    networks:
+      - appnet
+
+
+networks:
+  appnet:
+    name: time_manager_net
