@@ -34,7 +34,7 @@ jobs:
       - name: Run SonarQube Scan
         uses: SonarSource/sonarcloud-github-action@v2
         env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKENNN }}   #secret icicccc
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}   #secret icicccc
         with:
           args: >
             -Dsonar.organization=drownedmilan
