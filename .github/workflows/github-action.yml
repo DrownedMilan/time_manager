@@ -117,4 +117,3 @@ jobs:
           curl -F "payload_json={\"content\": \"🧩 Rapport Trivy multi-images (scan Docker)\"}" \
                -F "file=@trivy-multi-report.json" \
                ${{ secrets.DISCORD_WEBHOOK_URL }}
-
