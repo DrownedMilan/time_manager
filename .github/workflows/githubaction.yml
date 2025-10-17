@@ -26,11 +26,32 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r backend/requirements.txt
+          python -m pip install bandit
 
       - name: Run tests (optional)
         working-directory: backend
         run: |
           python -m pytest --maxfail=1 --disable-warnings -q || true
+      
+      - name: Run Bandit Security Scan
+        working-directory: backend
+        run: |
+          echo "🔍 Running Bandit security scan..."
+          bandit -r app/ -f json -o bandit-report.json || echo "⚠️ Bandit finished with issues, but not blocking build."
+
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-security-report
+          path: backend/bandit-report.json
+      
+      - name: Send Bandit JSON report to Discord
+        if: always()
+        run: |
+           curl -F "payload_json={\"content\": \"🛡️ Rapport Bandit (analyse de sécurité Python)\"}" \
+           -F "file=@backend/bandit-report.json" \
+           ${{ secrets.DISCORD_WEBHOOK_URL }}
+
 
       - name: Run SonarQube Scan
         uses: SonarSource/sonarcloud-github-action@v2
