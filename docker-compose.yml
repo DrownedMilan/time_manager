@@ -131,15 +131,15 @@ services:
       KC_HTTP_RELATIVE_PATH: /auth
       # 5) Tant qu’on est en dev, pas de strict hostname
       KC_HOSTNAME_STRICT: "false"
-    command: ["start-dev"]
+    command: ["start-dev", "--import-realm"]
     ports:
       - "8080:8080"   # debug optionnel
     restart: unless-stopped
     volumes:
       - ./frontend/dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar:/opt/keycloak/providers/keycloak-theme-for-kc-all-other-versions.jar
+      - ./import/keycloak/realm-export-time-manager.json:/opt/keycloak/data/import/realm-export-time-manager.json
     networks:
       - appnet
-
 
 networks:
   appnet:
