@@ -113,28 +113,23 @@ services:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
 
-      # DB
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
       KC_DB_USERNAME: kc_user
       KC_DB_PASSWORD: kc_password
 
-      # <<< IMPORTANT derrière Nginx >>>
-      # 1) URL publique EXACTE (avec /auth) vue par le navigateur
-      # KC_HOSTNAME: http://localhost:4000/auth/
-      KC_HOSTNAME: http://localhost:4000/auth
-      # 2) Keycloak doit interpréter les X-Forwarded-*
-      KC_PROXY_HEADERS: xforwarded
-      # 3) On parle en HTTP entre Nginx -> Keycloak (port 8080)
-      KC_HTTP_ENABLED: "true"
-      # 4) Keycloak sert lui-même sous /auth (aligne le contexte)
-      KC_HTTP_RELATIVE_PATH: /auth
-      # 5) Tant qu’on est en dev, pas de strict hostname
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_URL: http://localhost:4000/auth
+      KC_HOSTNAME_ADMIN_URL: http://localhost:4000/auth
       KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_RELATIVE_PATH: /auth
+      KC_PROXY_HEADERS: forwarded
+      KC_PROXY: edge
+
     command: ["start-dev", "--import-realm"]
     ports:
-      - "8080:8080"   # debug optionnel
-    restart: unless-stopped
+      - "8080:8080"
     volumes:
       - ./frontend/dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar:/opt/keycloak/providers/keycloak-theme-for-kc-all-other-versions.jar
       - ./import/keycloak/realm-export-time-manager.json:/opt/keycloak/data/import/realm-export-time-manager.json
