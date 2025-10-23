@@ -1,4 +1,4 @@
-name: SonarQube & Security Pipeline
+name: SonarQube Scan (Python)
 
 on:
   push:
@@ -48,9 +48,46 @@ jobs:
       - name: Send Bandit JSON report to Discord
         if: always()
         run: |
-           curl -F "payload_json={\"content\": \"Rapport Bandit (analyse de sécurité Python)\"}" \
+           curl -F "payload_json={\"content\": \"🛡️ Rapport Bandit (analyse de sécurité Python)\"}" \
            -F "file=@backend/bandit-report.json" \
            ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+
+      # ==== FRONTEND (React) ===
+
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint || echo "⚠️ Lint warnings, but continuing"
+
+      - name: Run frontend tests
+        working-directory: frontend
+        run: npm test -- --watchAll=false || echo "⚠️ Tests failed, continuing build"
+
+      - name: Build frontend
+        working-directory: frontend
+        run: npm run build
+
+      - name: Upload frontend build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: frontend/build
+
+  
+      # ==== SONARQUBE SCAN ====
+
 
       - name: Run SonarQube Scan
         uses: SonarSource/sonarcloud-github-action@v2
@@ -61,10 +98,11 @@ jobs:
             -Dsonar.organization=drownedmilan
             -Dsonar.projectKey=DrownedMilan_time_manager
             -Dsonar.python.coverage.reportPaths=coverage.xml
-            -Dsonar.sources=backend/app
+            -Dsonar.sources=backend/app,frontend/src
+            -Dsonar.exclusions=**/node_modules/**,**/build/**
 
-      - name: Send Discord Notification
-        if: always()
+      - name: Send Discord Notification             # DISCORD NOTIF
+        if: always()  # s’exécute même si le build échoue
         run: |
           STATUS="✅ Build succeeded"
           if [ "${{ job.status }}" != "success" ]; then
@@ -76,9 +114,12 @@ jobs:
                -d "{\"content\": \"$MESSAGE\"}" \
                ${{ secrets.DISCORD_WEBHOOK_URL }}
 
+
+  # ==== TRIVY SCAN FIXED ===
+
   trivy-scan:
-    needs: sonar   # 👈 Trivy ne démarre que si Sonar s'est bien terminé
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -92,45 +133,60 @@ jobs:
       - name: Build frontend image
         run: docker build -t time_manager-frontend ./frontend
 
-      - name: Pull required base images
-        run: |
-          docker pull postgres:17-bookworm
-          docker pull nginx:1.28.0-alpine3.21
-          docker pull quay.io/keycloak/keycloak:26.4.0
+      # ---- Scans individuels (fix parsing error) ----
 
-      - name: Run Trivy scan on backend
+      - name: Run Trivy scan (backend)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: time_manager-backend
           format: 'json'
           output: 'trivy-backend.json'
 
-      - name: Run Trivy scan on frontend
+      - name: Run Trivy scan (frontend)
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: time_manager-frontend
           format: 'json'
           output: 'trivy-frontend.json'
 
-      - name: Run Trivy scan on base images
-        run: |
-          trivy image postgres:17-bookworm -f json -o trivy-postgres.json
-          trivy image nginx:1.28.0-alpine3.21 -f json -o trivy-nginx.json
-          trivy image quay.io/keycloak/keycloak:26.4.0 -f json -o trivy-keycloak.json
+      - name: Run Trivy scan (postgres)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: postgres:17-bookworm
+          format: 'json'
+          output: 'trivy-postgres.json'
 
-      - name: Merge reports
-        run: |
-          jq -s '.' trivy-*.json > trivy-multi-report.json
+      - name: Run Trivy scan (nginx)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: nginx:1.28.0-alpine3.21
+          format: 'json'
+          output: 'trivy-nginx.json'
 
-      - name: Upload Trivy report artifact
+      - name: Run Trivy scan (keycloak)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: quay.io/keycloak/keycloak:26.4.0
+          format: 'json'
+          output: 'trivy-keycloak.json'
+
+      # ---- Upload et notification ----
+
+      - name: Upload all Trivy reports
         uses: actions/upload-artifact@v4
         with:
-          name: trivy-docker-report
-          path: trivy-multi-report.json
+          name: trivy-docker-reports
+          path: |
+            trivy-backend.json
+            trivy-frontend.json
+            trivy-postgres.json
+            trivy-nginx.json
+            trivy-keycloak.json
 
       - name: Send report to Discord
         if: always()
         run: |
-          curl -F "payload_json={\"content\": \"Rapport Trivy multi-images (scan Docker)\"}" \
-               -F "file=@trivy-multi-report.json" \
+          zip trivy-reports.zip trivy-*.json
+          curl -F "payload_json={\"content\": \"🧩 Rapports Trivy (analyse Docker multi-images)\"}" \
+               -F "file=@trivy-reports.zip" \
                ${{ secrets.DISCORD_WEBHOOK_URL }}
