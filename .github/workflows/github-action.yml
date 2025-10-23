@@ -52,9 +52,9 @@ jobs:
            -F "file=@backend/bandit-report.json" \
            ${{ secrets.DISCORD_WEBHOOK_URL }}
 
-     
+      # =========================
       # ==== FRONTEND (React) ===
-     
+      # =========================
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -85,9 +85,9 @@ jobs:
           name: frontend-build
           path: frontend/build
 
-     
+      # =========================
       # ==== SONARQUBE SCAN ====
-  
+      # =========================
 
       - name: Run SonarQube Scan
         uses: SonarSource/sonarcloud-github-action@v2
