@@ -1,5 +1,5 @@
 import { createContext } from 'react'
-import type Keycloak from 'keycloak-js'
+import Keycloak from 'keycloak-js'
 import keycloak from './keycloak'
 
 export interface AuthContextType {

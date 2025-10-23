@@ -7,7 +7,7 @@ app = FastAPI(
 	title="Time Manager API",
 	description="API for managing users in a PostgreSQL database using FastAPI and SQLModel.",
 	version="1.0.0",
-	# root_path="/api", Add in production
+	# root_path="/api",
 	redirect_slashes=False
 )
 

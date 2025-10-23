@@ -1,35 +1,48 @@
-/* eslint-disable react-refresh/only-export-components */
-import React, { createContext, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 import keycloak from './keycloak'
+import { AuthContext } from './AuthContext'
+import { logout } from '@/auth/logout'
 
-interface AuthContextType {
-  keycloak: Keycloak.KeycloakInstance
-  authenticated: boolean
-  initialized: boolean
-  logout: () => void
+interface KeycloakProviderProps {
+  children: ReactNode
 }
 
-export const AuthContext = createContext<AuthContextType>({
-  keycloak,
-  authenticated: false,
-  initialized: false,
-  logout: () => {},
-})
-
-export const KeycloakProvider = ({ children }: { children: React.ReactNode }) => {
+export const KeycloakProvider = ({ children }: KeycloakProviderProps) => {
   const [initialized, setInitialized] = useState(false)
   const [authenticated, setAuthenticated] = useState(false)
 
   useEffect(() => {
     keycloak
       .init({
-        onLoad: 'check-sso',
+        // onLoad: 'check-sso', // ou 'login-required' si tu veux forcer le login
+        onLoad: 'login-required',
         pkceMethod: 'S256',
         silentCheckSsoRedirectUri: `${window.location.origin}/silent-check-sso.html`,
       })
       .then((auth) => {
         setAuthenticated(auth)
         setInitialized(true)
+
+        if (auth && keycloak.token) {
+          localStorage.setItem('kc_token', keycloak.token)
+          console.log('✅ Token complet :', keycloak.token)
+          console.log('🧩 Token décodé :', keycloak.tokenParsed)
+        }
+
+        const refreshInterval = setInterval(async () => {
+          try {
+            const refreshed = await keycloak.updateToken(60)
+            if (refreshed && keycloak.token) {
+              localStorage.setItem('kc_token', keycloak.token)
+              console.info('[Keycloak] 🔄 Token refreshed')
+            }
+          } catch (err) {
+            console.warn('[Keycloak] Token refresh failed', err)
+          }
+        }, 60000) // toutes les 60s
+
+        return () => clearInterval(refreshInterval)
       })
       .catch((err) => {
         console.error('[Keycloak] Init error', err)
@@ -37,19 +50,7 @@ export const KeycloakProvider = ({ children }: { children: React.ReactNode }) =>
       })
   }, [])
 
-  const handleLogout = () => {
-    localStorage.clear()
-    sessionStorage.clear()
-    try {
-      keycloak.logout({ redirectUri: window.location.origin })
-    } catch (e) {
-      console.warn('Erreur lors du logout Keycloak:', e)
-    }
-    setAuthenticated(false)
-  }
-
   if (!initialized) {
-    // 🔄 version stylée
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-indigo-800 to-purple-900 text-white">
         <div className="text-center">
@@ -60,7 +61,7 @@ export const KeycloakProvider = ({ children }: { children: React.ReactNode }) =>
   }
 
   return (
-    <AuthContext.Provider value={{ keycloak, authenticated, initialized, logout: handleLogout }}>
+    <AuthContext.Provider value={{ keycloak, authenticated, initialized, logout: logout }}>
       {children}
     </AuthContext.Provider>
   )
