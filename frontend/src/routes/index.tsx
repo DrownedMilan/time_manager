@@ -1,6 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-
 import LoginPage from '@/pages/LoginPage'
 import UserDashboard from '@/pages/UserDashboard'
 import ManagerDashboard from '@/pages/ManagerDashboard'
@@ -8,22 +7,31 @@ import OrganizationDashboard from '@/pages/OrganizationDashboard'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  allowedRoles?: string[] // facultatif pour autoriser tout utilisateur connecté
+  allowedRoles?: string[]
 }
 
-const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
+type ResourceAccess = Record<string, { roles: string[] }>
+
+export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   const { keycloak, authenticated } = useAuth()
 
-  // 🔒 Pas connecté → rediriger vers login
   if (!authenticated) {
     return <Navigate to="/login" replace />
   }
 
-  // 🔐 Récupérer les rôles depuis le token Keycloak
-  const roles = keycloak.tokenParsed?.realm_access?.roles || []
+  if (!keycloak || !keycloak.tokenParsed) {
+    return <div>Chargement de la session...</div>
+  }
 
-  // Si la route est limitée à certains rôles et que l'utilisateur n'en fait pas partie
-  if (allowedRoles && !allowedRoles.some((role) => roles.includes(role))) {
+  const realmRoles = keycloak.tokenParsed?.realm_access?.roles || []
+
+  const resourceAccess = keycloak.tokenParsed?.resource_access as ResourceAccess | undefined
+  const resourceRoles = resourceAccess ? Object.values(resourceAccess).flatMap((r) => r.roles) : []
+
+  const allRoles = [...realmRoles, ...resourceRoles]
+
+  if (allowedRoles && !allowedRoles.some((role) => allRoles.includes(role))) {
+    console.warn('🚫 Accès refusé - rôles utilisateur :', allRoles)
     return <Navigate to="/unauthorized" replace />
   }
 
