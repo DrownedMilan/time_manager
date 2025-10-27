@@ -3,12 +3,24 @@
 # ----------------------------------------------------
 FROM node:20-alpine AS build
 WORKDIR /app
+
+# Copy package files first
 COPY package.json yarn.lock ./
-COPY .yarn .yarn
-COPY .yarnrc.yml ./
-RUN corepack enable && yarn install --immutable
+
+# Enable corepack and prepare yarn BEFORE copying .yarnrc.yml
+RUN corepack enable && corepack prepare yarn@4.10.3 --activate
+
+# Now copy the rest of the application
 COPY . .
-RUN yarn build
+
+# Remove .yarnrc.yml to avoid conflicts with corepack's yarn installation
+RUN rm -f .yarnrc.yml
+
+# Install dependencies
+RUN yarn install --immutable
+
+# For development, use CMD instead of RUN
+CMD ["yarn", "dev"]
 
 # ----------------------------------------------------
 # Production stage — Nginx
