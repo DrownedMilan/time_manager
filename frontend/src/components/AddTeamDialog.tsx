@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { Checkbox } from "./ui/checkbox";
 import { mockUsers } from "../lib/mockData";
 import { UserRole } from "../types";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 
 interface AddTeamDialogProps {
   open: boolean;

@@ -9,7 +9,7 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Separator } from "./ui/separator";
 import { Team, UserRole, UserMinimal } from "../types";
 import { Save, XCircle, UserPlus, UserMinus } from "lucide-react";
-import { toast } from "sonner@2.0.3";
+import { toast } from "sonner";
 import { mockUsers } from "../lib/mockData";
 
 interface TeamEditDialogProps {
