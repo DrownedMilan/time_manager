@@ -5,3 +5,5 @@ python-dotenv==1.0.0
 phonenumbers
 sqladmin>=0.18.0
 pytest
+python-jose
+requests>=2.31.0

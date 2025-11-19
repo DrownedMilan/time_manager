@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from sqlmodel import SQLModel
 from app.database import engine
-from app.routers import users, clocks, teams
+from app.routers import users, clocks, teams, auth_test
+from app.admin_panel import setup_admin
 
 app = FastAPI(
 	title="Time Manager API",
@@ -30,6 +31,12 @@ def on_startup():
 async def root():
 	return {"message": "Connected to the PostgreSQL DB via SQLModel!"}
 
+def init_admin(app):
+    from app.admin_panel import setup_admin
+    setup_admin(app)
+
 app.include_router(users.router)
 app.include_router(clocks.router)
 app.include_router(teams.router)
+app.include_router(auth_test.router)
+init_admin(app)

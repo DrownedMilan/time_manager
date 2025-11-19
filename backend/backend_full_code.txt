@@ -1,0 +1,763 @@
+./Dockerfile
+==============================
+FILE: ./Dockerfile
+==============================
+FROM python:3.12-slim-bookworm
+
+WORKDIR /code
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY ./app /code/app
+
+EXPOSE 80
+
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80", "--reload", "--proxy-headers"]
+./requirements.txt
+==============================
+FILE: ./requirements.txt
+==============================
+fastapi[standard]>=0.113.0,<0.114.0
+sqlmodel==0.0.27
+psycopg2-binary>=2.9
+python-dotenv==1.0.0
+phonenumbers
+sqladmin>=0.18.0
+pytest
+python-jose
+requests>=2.31.0
+
+./app/routers/teams.py
+==============================
+FILE: ./app/routers/teams.py
+==============================
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import Session, select
+from app.database import get_session
+from app.models import User, Team, TeamCreate, TeamUpdate, TeamPublic
+
+router = APIRouter(prefix="/teams", tags=["teams"])
+
+# *** Teams ***
+@router.post("/", response_model=TeamPublic)
+async def create_team(team: TeamCreate, session: Session = Depends(get_session)) -> TeamPublic:
+	if team.manager_id:
+		db_user = session.get(User, team.manager_id)
+		if not db_user:
+			raise HTTPException(status_code=404, detail="User not found")
+	existing_team = session.exec(select(Team).where(Team.name == team.name)).first()
+	if existing_team:
+		raise HTTPException(status_code=409, detail="Team already exists")
+	db_team = Team(**team.model_dump())
+	session.add(db_team)
+	session.commit()
+	session.refresh(db_team)
+	return db_team
+
+@router.get("/", response_model=list[TeamPublic])
+async def read_teams(session: Session = Depends(get_session)) -> list[TeamPublic]:
+	db_teams = session.exec(select(Team)).all()
+	return db_teams
+
+@router.get("/{team_id}", response_model=TeamPublic)
+async def read_team(team_id: int, session: Session = Depends(get_session)) -> TeamPublic:
+	db_team = session.get(Team, team_id)
+	if not db_team:
+		raise HTTPException(status_code=404, detail="Team not found")
+	return db_team
+
+@router.put("/{team_id}", response_model=TeamPublic)
+async def update_team(team_id: int, team: TeamUpdate, session: Session = Depends(get_session)) -> TeamPublic:
+	db_team = session.get(Team, team_id)
+	if not db_team:
+		raise HTTPException(status_code=404, detail="Team not found")
+		
+	team_data = team.model_dump(exclude_unset=True)
+	db_team.sqlmodel_update(team_data)
+	session.add(db_team)
+	session.commit()
+	session.refresh(db_team)
+	return db_team
+
+# Add team member
+@router.post("/{team_id}/members/{user_id}", response_model=TeamPublic)
+async def create_team_member(team_id: int, user_id: int, session: Session = Depends(get_session)) -> TeamPublic:
+	db_team = session.get(Team, team_id)
+	if not db_team:
+		raise HTTPException(status_code=404, detail=f"[{team_id}] Team not found")
+	
+	db_user = session.get(User, user_id)
+	if not db_user:
+		raise HTTPException(status_code=404, detail=f"[{user_id}] User not found")
+	
+	db_user.team_id = team_id
+	session.add(db_user)
+	session.commit()
+	session.refresh(db_team)
+	return db_team
+
+# Delete team member
+@router.delete("/{team_id}/members/{user_id}", response_model=TeamPublic)
+async def delete_team_member(team_id: int, user_id: int, session: Session = Depends(get_session)) -> TeamPublic:
+	db_team = session.get(Team, team_id)
+	if not db_team:
+		raise HTTPException(status_code=404, detail=f"[{team_id}] Team not found")
+
+	db_user = session.get(User, user_id)
+	if not db_user or db_user.team_id != team_id:
+		raise HTTPException(status_code=404, detail=f"[{user_id}] User not found in this team")
+	
+	db_user.team_id = None
+	session.add(db_user)
+	session.commit()
+	session.refresh(db_team)
+	return db_team
+
+@router.delete("/{team_id}", response_model=TeamPublic)
+async def delete_team(team_id: int, session: Session = Depends(get_session)) -> TeamPublic:
+	db_team = session.get(Team, team_id)
+	if not db_team:
+		raise HTTPException(status_code=404, detail="Team not found")
+	session.delete(db_team)
+	session.commit()
+	return db_team
+./app/routers/auth_test.py
+==============================
+FILE: ./app/routers/auth_test.py
+==============================
+from fastapi import APIRouter, Depends
+from app.auth import get_current_user
+from app.models import User
+
+router = APIRouter(prefix="/auth", tags=["auth"])
+
+@router.get("/me")
+def auth_me(user: User = Depends(get_current_user)):
+    return {
+        "id": user.id,
+        "email": user.email,
+        "keycloak_id": user.keycloak_id,
+        "roles": user.realm_roles or [],
+    }
+
+./app/routers/clocks.py
+==============================
+FILE: ./app/routers/clocks.py
+==============================
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import Session, select
+from app.database import get_session
+from app.models import User, Clock, ClockCreate, ClockPublic
+from datetime import datetime, timezone
+
+router = APIRouter(prefix="/clocks", tags=["clocks"])
+
+# *** Clocks ***
+# Each user can have only one active clock (i.e., a clock with clock_out == None) at a time.
+# If an active clock exists for the user, it will be closed (clock_out set to now) before a new clock is created.
+@router.post("/", response_model=ClockPublic)
+async def create_clock(clock: ClockCreate, session: Session = Depends(get_session)) -> ClockPublic:
+	db_user = session.get(User, clock.user_id)
+	if not db_user:
+		raise HTTPException(status_code=404, detail="User not found")
+
+	statement = select(Clock).where(Clock.user_id == clock.user_id, Clock.clock_out.is_(None))
+	db_clock = session.exec(statement).first()
+
+	if db_clock:
+		db_clock.clock_out = datetime.now(timezone.utc)
+		session.add(db_clock)
+		session.commit()
+		session.refresh(db_clock)
+		return db_clock
+	new_clock = Clock(**clock.model_dump())
+	session.add(new_clock)
+	session.commit()
+	session.refresh(new_clock)
+	return new_clock
+
+@router.get("/", response_model=list[ClockPublic])
+async def read_clocks(session: Session = Depends(get_session)) -> list[ClockPublic]:
+	db_clocks = session.exec(select(Clock)).all()
+	return db_clocks
+
+@router.get("/{clock_id}", response_model=ClockPublic)
+async def read_clock(clock_id: int, session: Session = Depends(get_session)) -> ClockPublic:
+	db_clock = session.get(Clock, clock_id)
+	if not db_clock:
+		raise HTTPException(status_code=404, detail="Clock not found")
+	return db_clock
+
+./app/routers/users.py
+==============================
+FILE: ./app/routers/users.py
+==============================
+from fastapi import APIRouter, Depends, HTTPException
+from sqlmodel import Session, select
+from app.database import get_session
+from app.models import User, UserCreate, UserPublic, UserUpdate, Clock, ClockPublic
+
+router = APIRouter(prefix="/users", tags=["users"])
+
+# *** Users ***
+@router.post("/", response_model=UserPublic)
+async def create_user(user: UserCreate, session: Session = Depends(get_session)) -> UserPublic:
+	existing_user = session.exec(select(User).where((User.email == user.email) | (User.phone_number == user.phone_number))).first()
+	if existing_user:
+		raise HTTPException(status_code=409, detail="User already exists")
+	db_user = User(**user.model_dump())
+	# ✅ user.model_dump() → converts your UserCreate Pydantic model → dict
+	# ✅ User(**dict) → constructs your ORM model from that dict
+	# ✅ Together: bridge between Pydantic (validation layer) and SQLModel (database layer)
+	session.add(db_user)
+	session.commit()
+	session.refresh(db_user)
+	return db_user
+
+@router.get("/", response_model=list[UserPublic])
+async def read_users(session: Session = Depends(get_session)) -> list[UserPublic]:
+	db_users = session.exec(select(User)).all()
+	return db_users
+
+@router.get("/{user_id}", response_model=UserPublic)
+async def read_user(user_id: int, session: Session = Depends(get_session)) -> UserPublic:
+	db_user = session.get(User, user_id)
+	if not db_user:
+		raise HTTPException(status_code=404, detail="User not found")
+	return db_user
+
+@router.put("/{user_id}", response_model=UserPublic)
+async def update_user(user_id: int, user: UserUpdate, session: Session = Depends(get_session)) -> UserPublic:
+	db_user = session.get(User, user_id)
+	if not db_user:
+		raise HTTPException(status_code=404, detail="User not found")
+	user_data = user.model_dump(exclude_unset=True)
+	db_user.sqlmodel_update(user_data)
+	session.add(db_user)
+	session.commit()
+	session.refresh(db_user)
+	return db_user
+
+@router.get("/{user_id}/clocks/", response_model=list[ClockPublic])
+async def read_user_clocks(user_id: int, session: Session = Depends(get_session)) -> list[ClockPublic]:
+	statement = select(Clock).where(Clock.user_id == user_id)
+	user_clocks = session.exec(statement).all()
+	return user_clocks
+
+@router.delete("/{user_id}", response_model=UserPublic)
+async def delete_user(user_id: int, session: Session = Depends(get_session)) -> UserPublic:
+	db_user = session.get(User, user_id)
+	if not db_user:
+		raise HTTPException(status_code=404, detail="User not found")
+	session.delete(db_user)
+	session.commit()
+	return db_user
+
+./app/database.py
+==============================
+FILE: ./app/database.py
+==============================
+import os
+from sqlmodel import create_engine, SQLModel, Session
+from dotenv import load_dotenv
+
+load_dotenv()
+
+POSTGRES_USER = os.getenv("POSTGRES_USER")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD")
+POSTGRES_DB = os.getenv("POSTGRES_DB")
+POSTGRES_HOST = os.getenv("POSTGRES_HOST")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT")
+
+SQL_DB_URL = (f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}")
+
+engine = create_engine(SQL_DB_URL, echo=True)
+
+def get_session():
+    with Session(engine) as session:
+        yield session
+./app/admin_panel.py
+==============================
+FILE: ./app/admin_panel.py
+==============================
+from sqladmin import Admin, ModelView
+from sqlalchemy.orm import joinedload
+
+from app.database import engine
+from app.models import User, Team, Clock
+
+
+# ============================================
+#                  USER ADMIN
+# ============================================
+class UserAdmin(ModelView, model=User):
+    name = "User"
+    name_plural = "Users"
+    icon = "fa-solid fa-user"
+
+    column_list = [
+        User.id,
+        User.first_name,
+        User.last_name,
+        User.email,
+        User.phone_number,
+        User.team_id,
+        User.created_at,
+        "realm_roles_display",
+    ]
+
+    column_labels = {
+        User.first_name: "First Name",
+        User.last_name: "Last Name",
+        User.email: "Email",
+        User.phone_number: "Phone Number",
+        User.team_id: "Team",
+        User.created_at: "Created At",
+        "realm_roles_display": "Roles",
+    }
+
+    column_searchable_list = [
+        User.first_name,
+        User.last_name,
+        User.email,
+        User.phone_number,
+    ]
+
+    column_sortable_list = [
+        User.id,
+        User.created_at,
+        User.last_name,
+    ]
+
+    form_columns = [
+        User.first_name,
+        User.last_name,
+        User.email,
+        User.phone_number,
+        User.team_id,
+    ]
+
+    column_formatters = {
+        "realm_roles_display": lambda m, a: ", ".join(m.realm_roles or []),
+    }
+
+    def get_model_repr(self, obj):
+        return f"{obj.last_name} {obj.first_name}"
+
+    def realm_roles_display(self, obj):
+        return ", ".join(obj.realm_roles or [])
+
+
+# ============================================
+#                  TEAM ADMIN
+# ============================================
+class TeamAdmin(ModelView, model=Team):
+    name = "Team"
+    name_plural = "Teams"
+    icon = "fa-solid fa-users"
+
+    column_list = [
+        Team.id,
+        Team.name,
+        Team.manager_id,
+        Team.created_at,
+    ]
+
+    column_searchable_list = [
+        Team.name,
+        Team.description,
+    ]
+
+    column_sortable_list = [
+        Team.id,
+        Team.created_at,
+    ]
+
+    form_excluded_columns = [
+        Team.members,
+        Team.manager,
+    ]
+
+
+# ============================================
+#                  CLOCK ADMIN
+# ============================================
+class ClockAdmin(ModelView, model=Clock):
+    name = "Clock"
+    name_plural = "Clocks"
+    icon = "fa-regular fa-clock"
+
+    async def get_list_query(self, request):
+        stmt = await super().get_list_query(request)
+        return stmt.options(joinedload(Clock.user))
+
+    column_list = [
+        Clock.id,
+        "user.last_name",
+        "user.email",
+        Clock.clock_in,
+        Clock.clock_out,
+    ]
+
+    column_sortable_list = [
+        Clock.id,
+        "user.last_name",
+        "user.email",
+        Clock.clock_in,
+        Clock.clock_out,
+    ]
+
+    column_labels = {
+        Clock.id: "Clock ID",
+        "user.last_name": "User Name",
+        "user.email": "Email",
+        Clock.clock_in: "Clock In",
+        Clock.clock_out: "Clock Out",
+    }
+
+    column_formatters = {
+        "user.last_name": lambda m, a: (
+            f"{m.user.last_name} {m.user.first_name}" if m.user else "—"
+        ),
+    }
+
+
+# ============================================
+#         INITIALISATION (fix import loop)
+# ============================================
+def setup_admin(app):
+    admin = Admin(app, engine, base_url="/admin")
+    admin.add_view(UserAdmin)
+    admin.add_view(TeamAdmin)
+    admin.add_view(ClockAdmin)
+
+./app/main.py
+==============================
+FILE: ./app/main.py
+==============================
+from fastapi import FastAPI
+from sqlmodel import SQLModel
+from app.database import engine
+from app.routers import users, clocks, teams, auth_test
+from app.admin_panel import setup_admin
+
+app = FastAPI(
+	title="Time Manager API",
+	description="API for managing users in a PostgreSQL database using FastAPI and SQLModel.",
+	version="1.0.0",
+	# root_path="/api",
+	redirect_slashes=False
+)
+
+from fastapi.middleware.cors import CORSMiddleware
+
+# 🔹 Autoriser le front (React) à communiquer avec le back
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.on_event("startup")
+def on_startup():
+	SQLModel.metadata.create_all(engine)
+
+@app.get("/")
+async def root():
+	return {"message": "Connected to the PostgreSQL DB via SQLModel!"}
+
+def init_admin(app):
+    from app.admin_panel import setup_admin
+    setup_admin(app)
+
+app.include_router(users.router)
+app.include_router(clocks.router)
+app.include_router(teams.router)
+app.include_router(auth_test.router)
+init_admin(app)
+./app/models.py
+==============================
+FILE: ./app/models.py
+==============================
+from __future__ import annotations
+from typing import Optional, List
+
+from sqlmodel import SQLModel, Field
+from sqlalchemy.orm import Mapped, relationship
+
+from pydantic import EmailStr, field_validator, ConfigDict
+from datetime import datetime, timezone
+import phonenumbers
+
+
+# =====================================================
+#                      USER (DB MODEL)
+# =====================================================
+
+class User(SQLModel, table=True):
+    __tablename__ = "users"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    first_name: str
+    last_name: str
+    email: str = Field(unique=True, index=True)
+    phone_number: str = Field(unique=True, index=True)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    team_id: Optional[int] = Field(default=None, foreign_key="teams.id")
+    keycloak_id: str = Field(unique=True, index=True)
+
+    # Extra config
+    model_config = ConfigDict(extra="allow")
+
+    # Relations
+    clocks: Mapped[List["Clock"]] = relationship(back_populates="user")
+
+    team: Mapped[Optional["Team"]] = relationship(
+        back_populates="members",
+        sa_relationship_kwargs={"foreign_keys": "User.team_id"},
+    )
+
+    managed_team: Mapped[Optional["Team"]] = relationship(
+        back_populates="manager",
+        sa_relationship_kwargs={"foreign_keys": "Team.manager_id"},
+    )
+
+    # Validators
+    @field_validator("first_name")
+    def normalize_first_name(cls, v):
+        return v.strip().capitalize()
+
+    @field_validator("last_name")
+    def normalize_last_name(cls, v):
+        return v.strip().upper()
+
+    @field_validator("email")
+    def normalize_email(cls, v):
+        return v.strip().lower()
+
+    @field_validator("phone_number")
+    def validate_phone_number(cls, v):
+        try:
+            number = phonenumbers.parse(v, "FR")
+            if not phonenumbers.is_valid_number(number):
+                raise ValueError("Invalid phone number")
+            return phonenumbers.format_number(
+                number, phonenumbers.PhoneNumberFormat.E164
+            )
+        except phonenumbers.NumberParseException:
+            raise ValueError("Invalid phone number format")
+
+    @property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}"
+
+
+# =====================================================
+#                      USER SCHEMAS
+# =====================================================
+
+class UserCreate(SQLModel):
+    first_name: str
+    last_name: str
+    email: EmailStr
+    phone_number: str
+
+
+class UserPublic(SQLModel):
+    id: int
+    first_name: str
+    last_name: str
+    email: str
+    phone_number: str
+    created_at: datetime
+    team_id: Optional[int]
+    keycloak_id: str
+
+    # Non-persisted field
+    realm_roles: List[str] = []
+
+
+class UserUpdate(SQLModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone_number: Optional[str] = None
+
+
+class UserMinimal(SQLModel):
+    id: int
+    first_name: str
+    last_name: str
+    email: EmailStr
+
+
+# =====================================================
+#                      CLOCK
+# =====================================================
+
+class Clock(SQLModel, table=True):
+    __tablename__ = "clocks"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    clock_in: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    clock_out: Optional[datetime] = Field(default=None)
+
+    user: Mapped[Optional[User]] = relationship(back_populates="clocks")
+
+
+class ClockCreate(SQLModel):
+    user_id: int
+
+
+class ClockPublic(SQLModel):
+    id: int
+    user_id: int
+    clock_in: datetime
+    clock_out: Optional[datetime]
+    user: Optional[UserMinimal]
+
+
+# =====================================================
+#                      TEAM
+# =====================================================
+
+class Team(SQLModel, table=True):
+    __tablename__ = "teams"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(index=True, unique=True, nullable=False)
+    description: str = Field(index=True, nullable=False)
+    manager_id: Optional[int] = Field(default=None, foreign_key="users.id")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    manager: Mapped[Optional[User]] = relationship(
+        back_populates="managed_team",
+        sa_relationship_kwargs={"foreign_keys": "Team.manager_id"},
+    )
+
+    members: Mapped[List[User]] = relationship(
+        back_populates="team",
+        sa_relationship_kwargs={"foreign_keys": "User.team_id"},
+    )
+
+
+class TeamCreate(SQLModel):
+    name: str
+    description: str
+    manager_id: Optional[int] = None
+
+
+class TeamPublic(SQLModel):
+    id: int
+    name: str
+    description: str
+    manager_id: Optional[int]
+    created_at: datetime
+    manager: Optional[UserMinimal]
+    members: List[UserMinimal]
+
+
+class TeamUpdate(SQLModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    manager_id: Optional[int] = None
+
+
+class TeamMinimal(SQLModel):
+    id: int
+    name: str
+    manager: Optional[UserMinimal]
+
+./app/auth.py
+==============================
+FILE: ./app/auth.py
+==============================
+import requests
+from fastapi import Depends, HTTPException
+from fastapi.security import HTTPBearer
+from jose import jwt
+from sqlmodel import Session, select
+from app.database import get_session
+from app.models import User
+
+bearer_scheme = HTTPBearer()
+
+KEYCLOAK_ISSUER = "http://localhost:4000/auth/realms/time-manager"
+KEYCLOAK_INTERNAL_JWKS_URL = "http://keycloak:8080/auth/realms/time-manager/protocol/openid-connect/certs"
+
+jwks_cache = None
+
+def get_jwks():
+    global jwks_cache
+    if jwks_cache is None:
+        resp = requests.get(KEYCLOAK_INTERNAL_JWKS_URL)
+        resp.raise_for_status()
+        jwks_cache = resp.json()
+    return jwks_cache
+
+def get_current_user(
+    credentials=Depends(bearer_scheme),
+    session: Session = Depends(get_session),
+):
+    token = credentials.credentials
+    jwks = get_jwks()
+
+    # ---- Decode + validate token ----
+    try:
+        header = jwt.get_unverified_header(token)
+        rsa_key = next(
+            (key for key in jwks["keys"] if key["kid"] == header["kid"]),
+            None,
+        )
+        if not rsa_key:
+            raise HTTPException(status_code=401, detail="Invalid token headers")
+
+        payload = jwt.decode(
+            token,
+            rsa_key,
+            algorithms=["RS256"],
+            audience="account",
+            issuer=KEYCLOAK_ISSUER,
+        )
+
+        # Realm roles
+        realm_roles = payload.get("realm_access", {}).get("roles", [])
+
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=f"Invalid token {e}")
+
+    # ---- Extract Keycloak User ID ----
+    keycloak_id = payload.get("sub")
+    email = payload.get("email")
+    first_name = payload.get("given_name", "")
+    last_name = payload.get("family_name", "")
+
+    if not keycloak_id:
+        raise HTTPException(status_code=401, detail="Token missing subject")
+
+    # ---- Check if user exists in DB ----
+    stmt = select(User).where(User.keycloak_id == keycloak_id)
+    user = session.exec(stmt).first()
+
+    # ---- Auto-provision ----
+    if not user:
+        user = User(
+            keycloak_id=keycloak_id,
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            phone_number="0000000000",
+        )
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+
+    # Always attach roles (for both new + existing users)
+    setattr(user, "realm_roles", realm_roles)
+
+    return user
+
