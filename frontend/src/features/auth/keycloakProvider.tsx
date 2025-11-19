@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import keycloak from './keycloak'
 import { AuthContext } from './AuthContext'
-import { logout } from '@/auth/logout'
+import { logout } from './logout'
 
 interface KeycloakProviderProps {
   children: ReactNode
@@ -61,7 +61,16 @@ export const KeycloakProvider = ({ children }: KeycloakProviderProps) => {
   }
 
   return (
-    <AuthContext.Provider value={{ keycloak, authenticated, initialized, logout: logout }}>
+    <AuthContext.Provider
+      value={
+        {
+          keycloak,
+          authenticated,
+          initialized,
+          logout: logout,
+        }
+      }
+    >
       {children}
     </AuthContext.Provider>
   )

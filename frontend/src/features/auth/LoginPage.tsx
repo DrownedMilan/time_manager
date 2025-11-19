@@ -1,6 +1,6 @@
 import { useContext } from 'react'
-import { AuthContext } from '../auth/keycloakProvider'
-import { Button } from '@/components/ui/button'
+import { AuthContext } from './AuthContext'
+import { Button } from '../../components/ui/button'
 import { Building2 } from 'lucide-react'
 
 export default function LoginPage() {

@@ -1,98 +1,110 @@
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { User, UserRole } from "../types";
-import { Save, XCircle, Copy, CheckCheck } from "lucide-react";
-import { toast } from "sonner";
+import { useState, useEffect } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '../../components/ui/dialog'
+import { Button } from '../../components/ui/button'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../../components/ui/select'
+import { type User, UserRole } from '../../types'
+import { Save, XCircle, Copy, CheckCheck } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface EmployeeEditDialogProps {
-  user: User | null;
+  user?: User | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 export default function EmployeeEditDialog({ user, open, onOpenChange }: EmployeeEditDialogProps) {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [role, setRole] = useState<UserRole>(UserRole.EMPLOYEE);
-  const [tempPassword, setTempPassword] = useState("");
-  const [passwordCopied, setPasswordCopied] = useState(false);
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
+  const [phoneNumber, setPhoneNumber] = useState('')
+  const [role, setRole] = useState<UserRole>(UserRole.EMPLOYEE)
+  const [tempPassword, setTempPassword] = useState('')
+  const [passwordCopied, setPasswordCopied] = useState(false)
 
   // Generate a secure temporary password
   const generateTempPassword = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-    const special = '@#$%&';
-    let password = 'Bank';
-    password += new Date().getFullYear();
-    password += special.charAt(Math.floor(Math.random() * special.length));
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+    const special = '@#$%&'
+    let password = 'Bank'
+    password += new Date().getFullYear()
+    password += special.charAt(Math.floor(Math.random() * special.length))
     for (let i = 0; i < 5; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+      password += chars.charAt(Math.floor(Math.random() * chars.length))
     }
-    return password;
-  };
+    return password
+  }
 
   useEffect(() => {
     if (user) {
-      setFirstName(user.first_name);
-      setLastName(user.last_name);
-      setEmail(user.email);
-      setPhoneNumber(user.phone_number);
-      setRole(user.role);
-      setTempPassword(""); // No password for editing
-      setPasswordCopied(false);
+      setFirstName(user.first_name)
+      setLastName(user.last_name)
+      setEmail(user.email)
+      setPhoneNumber(user.phone_number)
+      setRole(user.role)
+      setTempPassword('') // No password for editing
+      setPasswordCopied(false)
     } else {
       // Reset form for new employee
-      setFirstName("");
-      setLastName("");
-      setEmail("");
-      setPhoneNumber("");
-      setRole(UserRole.EMPLOYEE);
-      setTempPassword(generateTempPassword()); // Generate password for new employee
-      setPasswordCopied(false);
+      setFirstName('')
+      setLastName('')
+      setEmail('')
+      setPhoneNumber('')
+      setRole(UserRole.EMPLOYEE)
+      setTempPassword(generateTempPassword()) // Generate password for new employee
+      setPasswordCopied(false)
     }
-  }, [user, open]);
+  }, [user, open])
 
   const handleSave = () => {
     // Validation
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !phoneNumber.trim()) {
-      toast.error("Please fill in all fields");
-      return;
+      toast.error('Please fill in all fields')
+      return
     }
 
     // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(email)) {
-      toast.error("Please enter a valid email address");
-      return;
+      toast.error('Please enter a valid email address')
+      return
     }
 
     // In a real app, this would make an API call
-    const action = user ? 'updated' : 'added';
-    toast.success(`Employee ${firstName} ${lastName} ${action} successfully!`);
-    onOpenChange(false);
-  };
+    const action = user ? 'updated' : 'added'
+    toast.success(`Employee ${firstName} ${lastName} ${action} successfully!`)
+    onOpenChange(false)
+  }
 
   const handleCancel = () => {
-    onOpenChange(false);
-  };
+    onOpenChange(false)
+  }
 
   const copyPassword = async () => {
     try {
-      await navigator.clipboard.writeText(tempPassword);
-      setPasswordCopied(true);
-      toast.success("Password copied to clipboard!");
-      setTimeout(() => setPasswordCopied(false), 2000);
+      await navigator.clipboard.writeText(tempPassword)
+      setPasswordCopied(true)
+      toast.success('Password copied to clipboard!')
+      setTimeout(() => setPasswordCopied(false), 2000)
     } catch (error) {
-      toast.error("Failed to copy password");
+      toast.error('Failed to copy password')
     }
-  };
+  }
 
-  const roleChanged = user && role !== user.role;
+  const roleChanged = user && role !== user.role
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -102,7 +114,9 @@ export default function EmployeeEditDialog({ user, open, onOpenChange }: Employe
             {user ? 'Edit Employee' : 'Add New Employee'}
           </DialogTitle>
           <DialogDescription className="text-white/60">
-            {user ? 'Update employee information and manage their role' : 'Enter new employee details'}
+            {user
+              ? 'Update employee information and manage their role'
+              : 'Enter new employee details'}
           </DialogDescription>
         </DialogHeader>
 
@@ -248,5 +262,5 @@ export default function EmployeeEditDialog({ user, open, onOpenChange }: Employe
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

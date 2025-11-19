@@ -1,5 +1,5 @@
 import App from './App'
-import { KeycloakProvider } from './auth/keycloakProvider'
+import { KeycloakProvider } from './features/auth/keycloakProvider'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import './index.css'
 

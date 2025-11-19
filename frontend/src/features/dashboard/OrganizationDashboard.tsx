@@ -1,13 +1,13 @@
 import { useState } from "react";
-import StatCard from "./StatCard";
-import UsersTable from "./UsersTable";
-import TeamsTable from "./TeamsTable";
-import TeamDetailView from "./TeamDetailView";
-import AddTeamDialog from "./AddTeamDialog";
-import EmployeeEditDialog from "./EmployeeEditDialog";
-import TeamEditDialog from "./TeamEditDialog";
-import EmployeeRankingDialog from "./EmployeeRankingDialog";
-import ExportDialog from "./ExportDialog";
+import StatCard from "../../components/common/StatCard";
+import UsersTable from "../../components/UsersTable";
+import TeamsTable from "../teams/TeamsTable";
+import TeamDetailView from "../teams/TeamDetailView";
+import AddTeamDialog from "../teams/AddTeamDialog";
+import EmployeeEditDialog from "../employees/EmployeeEditDialog";
+import TeamEditDialog from "../teams/TeamEditDialog";
+import EmployeeRankingDialog from "../employees/EmployeeRankingDialog";
+import ExportDialog from "../../components/common/ExportDialog";
 import {
   Users,
   Building2,
@@ -23,14 +23,14 @@ import {
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "./ui/tabs";
-import { Button } from "./ui/button";
-import { User, Team } from "../types";
+} from "../../components/ui/tabs";
+import { Button } from "../../components/ui/button";
+import type { User, Team } from "../../types";
 import {
   mockUsers,
   mockTeams,
   mockClocks,
-} from "../lib/mockData";
+} from "../../lib/mockData";
 import {
   LineChart,
   Line,

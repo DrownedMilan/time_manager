@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Avatar, AvatarFallback } from "./ui/avatar";
-import { Badge } from "./ui/badge";
-import { UserMinimal, UserRole, User } from "../types";
+import { Avatar, AvatarFallback } from "../../components/ui/avatar";
+import { Badge } from "../../components/ui/badge";
+import type {  UserMinimal, UserRole, User } from "../../types";
 import { Users } from "lucide-react";
-import { mockUsers } from "../lib/mockData";
-import EmployeeDetailView from "./EmployeeDetailView";
+import { mockUsers } from "../../lib/mockData";
+import EmployeeDetailView from "../../features/employees/EmployeeDetailView";
 
 interface TeamMembersCardProps {
   members: UserMinimal[];

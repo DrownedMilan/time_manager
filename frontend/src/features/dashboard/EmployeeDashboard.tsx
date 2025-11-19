@@ -1,11 +1,11 @@
 import { useState } from "react";
-import StatCard from "./StatCard";
-import ClockWidget from "./ClockWidget";
-import ClockRecordsTable from "./ClockRecordsTable";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import StatCard from "@/components/common/StatCard";
+import ClockWidget from "@/components/common/ClockWidget";
+// import ClockRecordsTable from "@/components/ClockRecordsTable";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Clock, User as UserIcon, Calendar, ClockAlert, Mail, Phone } from "lucide-react";
-import { User, Clock as ClockType } from "../types";
-import { mockClocks, mockUsers } from "../lib/mockData";
+import { type User, type Clock as ClockType } from "../../types";
+import { mockClocks, mockUsers } from "../../lib/mockData";
 
 interface EmployeeDashboardProps {
   user: User;

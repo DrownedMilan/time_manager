@@ -1,19 +1,18 @@
 import { useState } from "react";
-import StatCard from "./StatCard";
-import ClockWidget from "./ClockWidget";
-import ClockRecordsTable from "./ClockRecordsTable";
-import TeamMembersCard from "./TeamMembersCard";
-import EmployeeRankingDialog from "./EmployeeRankingDialog";
-import ExportDialog from "./ExportDialog";
-import { Button } from "./ui/button";
+import StatCard from "../../components/common/StatCard";
+import ClockWidget from "../../components/common/ClockWidget";
+import ClockRecordsTable from "../../components/ClockRecordsTable";
+import TeamMembersCard from "../../components/common/TeamMembersCard";
+import EmployeeRankingDialog from "@/features/employees/EmployeeRankingDialog";
+import ExportDialog from "../../components/common/ExportDialog";
+import { Button } from "../../components/ui/button";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
-} from "./ui/tabs";
+} from "../../components/ui/tabs";
 import {
-  Users,
   Clock,
   Calendar,
   TrendingUp,
@@ -23,8 +22,8 @@ import {
   User as UserIcon,
   Download,
 } from "lucide-react";
-import { User, Clock as ClockType } from "../types";
-import { mockClocks, mockTeams } from "../lib/mockData";
+import type { User, Clock as ClockType } from "@/types";
+import { mockClocks, mockTeams } from "@/lib/mockData";
 import {
   BarChart,
   Bar,

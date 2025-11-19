@@ -1,148 +1,135 @@
-import { useState } from 'react'
-import type { PageProps } from 'keycloakify/login/pages/PageProps'
-import type { KcContext } from '../KcContext'
-import type { I18n } from '../i18n'
+import { useState } from "react";
+import type { PageProps } from "keycloakify/login/pages/PageProps";
+import type { KcContext } from "../KcContext";
+import type { I18n } from "../i18n";
 
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Clock, Building2 } from 'lucide-react'
+import { Button } from "../../../components/ui/button";
+import { Input } from "../../../components/ui/input";
+import { Label } from "../../../components/ui/label";
+import { Mail, Lock } from "lucide-react";
+import logo from "../../../../public/primebank_logo.png"
 
-import '../../../index.css'
+import "../../../index.css";
 
-export default function Login(props: PageProps<Extract<KcContext, { pageId: 'login.ftl' }>, I18n>) {
-  const { kcContext, i18n, Template } = props
-  const { msgStr } = i18n
-  const { url, messagesPerField, message, realm } = kcContext
+export default function Login(
+  props: PageProps<Extract<KcContext, { pageId: "login.ftl" }>, I18n>
+) {
+  const { kcContext, i18n, Template } = props;
+  const { msgStr } = i18n;
+  const { url, messagesPerField, message } = kcContext;
 
-  const [username, setUsername] = useState(kcContext.login?.username ?? '')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [username, setUsername] = useState(kcContext.login?.username ?? "");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setLoading(true)
-    e.currentTarget.submit()
-  }
+    setLoading(true);
+  };
 
-  const globalMessage = typeof message === 'string' ? message : (message?.toString?.() ?? undefined)
-
-  const fieldErr = (name: 'username' | 'password') =>
-    messagesPerField.existsError(name) ? messagesPerField.get(name) : undefined
+  const globalMessage =
+    typeof message === "string"
+      ? message
+      : message?.summary ?? undefined;
 
   return (
-    <Template
-      kcContext={kcContext}
-      i18n={i18n}
-      doUseDefaultCss={false}
-      headerNode={null} // ✅ pas de header Keycloak
-    >
-      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-indigo-800 to-purple-900 flex items-center justify-center p-4">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-20 w-72 h-72 bg-blue-500/30 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 right-20 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl" />
+    <Template kcContext={kcContext} i18n={i18n} doUseDefaultCss={false} headerNode={undefined}>
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 relative overflow-hidden">
+        
+        {/* Animated background */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
         </div>
 
-        <div className="relative w-full max-w-md">
-          <div className="backdrop-blur-xl bg-white/10 rounded-2xl border border-white/20 shadow-2xl p-8">
-            <div className="text-center mb-8">
-              <div className="flex justify-center mb-4">
-                <div className="p-4 bg-white/10 rounded-full border border-white/20">
-                  <Building2 className="w-12 h-12 text-white" />
-                </div>
+        <div className="w-full max-w-md relative">
+          <div className="backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-8 shadow-2xl">
+
+            {/* Logo */}
+            <div className="flex flex-col items-center mb-8">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-2xl flex items-center justify-center mb-4 shadow-lg p-3">
+                <img src={logo} alt="PrimeBank Logo" className="w-full h-full object-contain" />
               </div>
-              <h1 className="text-white text-3xl font-bold mb-2">Bank Clock</h1>
-              <p className="text-white/70">Employee Time Management System</p>
+              <h1 className="text-white/90">PrimeBank</h1>
+              <p className="text-white/60 text-sm mt-2">Time Management Dashboard</p>
             </div>
 
+            {/* Global error */}
             {globalMessage && (
               <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-200 text-sm">
                 {globalMessage}
               </div>
             )}
 
+            {/* KEYCLOAK LOGIN FORM */}
             <form action={url.loginAction} method="post" onSubmit={onSubmit} className="space-y-6">
+
+              {/* Username */}
               <div className="space-y-2">
-                <Label htmlFor="username" className="text-white/90">
-                  Email
-                </Label>
-                <Input
-                  id="username"
-                  name="username"
-                  type="text"
-                  autoComplete="username"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 backdrop-blur-sm focus:bg-white/20"
-                  required
-                  disabled={loading}
-                />
-                {fieldErr('username') && (
-                  <p className="text-red-300 text-xs">{fieldErr('username')}</p>
+                <Label htmlFor="username" className="text-white/80">Username or Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                  <Input
+                    id="username"
+                    name="username"
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-blue-400/50 focus:bg-white/10"
+                    required
+                  />
+                </div>
+
+                {messagesPerField.existsError("username") && (
+                  <p className="text-red-300 text-xs">
+                    {messagesPerField.get("username")}
+                  </p>
                 )}
               </div>
 
+              {/* Password */}
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-white/90">
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 backdrop-blur-sm focus:bg-white/20"
-                  required
-                  disabled={loading}
-                />
-                {fieldErr('password') && (
-                  <p className="text-red-300 text-xs">{fieldErr('password')}</p>
+                <Label htmlFor="password" className="text-white/80">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10 bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-blue-400/50 focus:bg-white/10"
+                    required
+                  />
+                </div>
+
+                {messagesPerField.existsError("password") && (
+                  <p className="text-red-300 text-xs">
+                    {messagesPerField.get("password")}
+                  </p>
                 )}
               </div>
-
-              <input
-                type="hidden"
-                name="credentialId"
-                value={kcContext.auth?.selectedCredential ?? ''}
-              />
 
               <Button
                 type="submit"
-                className="w-full bg-white/20 hover:bg-white/30 text-white border border-white/30 backdrop-blur-sm transition-all"
                 disabled={loading}
+                className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
               >
-                {loading ? (
-                  <>
-                    <div className="w-4 h-4 mr-2 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    {msgStr('doLogIn')}
-                  </>
-                ) : (
-                  <>
-                    <Clock className="w-4 h-4 mr-2" />
-                    {msgStr('doLogIn')}
-                  </>
-                )}
+                {msgStr("doLogIn")}
               </Button>
+
             </form>
 
+            {/* Forgot password */}
             <div className="mt-8 pt-6 border-t border-white/10 text-white/70 text-sm text-center">
-              {realm.registrationAllowed && (
-                <>
-                  <a href={url.registrationUrl} className="hover:underline">
-                    {msgStr('doRegister')}
-                  </a>
-                  {' · '}
-                </>
-              )}
               <a href={url.loginResetCredentialsUrl} className="hover:underline">
-                {msgStr('doForgotPassword')}
+                {msgStr("doForgotPassword")}
               </a>
             </div>
+
           </div>
         </div>
+
       </div>
     </Template>
-  )
+  );
 }

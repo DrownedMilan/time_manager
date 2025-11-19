@@ -1,9 +1,9 @@
-import { ReactNode, useState } from "react";
-import { Button } from "./ui/button";
+import { type ReactNode, useState } from "react";
+import { Button } from "../../components/ui/button";
 import { LogOut, User, UsersRound, Plus, Building2 } from "lucide-react";
-import { UserRole } from "../types";
-import PasswordChangeDialog from "./PasswordChangeDialog";
-import EmployeeEditDialog from "./EmployeeEditDialog";
+import { UserRole } from "../../types";
+import PasswordChangeDialog from "../../features/auth/PasswordChangeDialog";
+import EmployeeEditDialog from "../../features/employees/EmployeeEditDialog";
 import logo from "/primebank_logo.png";
 
 interface DashboardLayoutProps {
@@ -118,7 +118,6 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
         <EmployeeEditDialog
           open={isEmployeeEditOpen}
           onOpenChange={setIsEmployeeEditOpen}
-          employee={null}
         />
       )}
     </div>

@@ -4,11 +4,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-} from "./ui/dialog";
-import { Avatar, AvatarFallback } from "./ui/avatar";
-import { Badge } from "./ui/badge";
-import { User, UserRole } from "../types";
-import { mockClocks } from "../lib/mockData";
+} from "@/components/ui/dialog";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { type User, UserRole } from "../../types";
+import { mockClocks } from "../../lib/mockData";
 import {
   Mail,
   Phone,
@@ -16,7 +16,7 @@ import {
   Users,
   Clock,
 } from "lucide-react";
-import ClockRecordsTable from "./ClockRecordsTable";
+import ClockRecordsTable from "@/components/ClockRecordsTable";
 
 interface EmployeeDetailViewProps {
   user: User | null;
@@ -146,7 +146,7 @@ export default function EmployeeDetailView({
             </div>
             <ClockRecordsTable
               clocks={userClocks}
-              showUserColumn={false}
+              showUser={false}
             />
           </div>
         </div>

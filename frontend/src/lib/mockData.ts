@@ -1,4 +1,4 @@
-import { User, UserRole, Team, Clock } from "../types";
+import type { User, Team, Clock, UserRole } from "../types";
 
 // Mock users data
 export const mockUsers: User[] = [
@@ -12,7 +12,8 @@ export const mockUsers: User[] = [
     created_at: "2024-01-15T08:00:00Z",
     clocks: [],
     managed_team: null,
-    team: null
+    team: null,
+    keycloak_id: "keycloak-uuid-1"
   },
   {
     id: 2,
@@ -24,7 +25,8 @@ export const mockUsers: User[] = [
     created_at: "2024-02-10T08:00:00Z",
     clocks: [],
     managed_team: null,
-    team: null
+    team: null,
+    keycloak_id: "keycloak-uuid-2"
   },
   {
     id: 3,
@@ -36,7 +38,8 @@ export const mockUsers: User[] = [
     created_at: "2024-03-05T08:00:00Z",
     clocks: [],
     managed_team: null,
-    team: null
+    team: null,
+    keycloak_id: "keycloak-uuid-3"
   },
   {
     id: 4,
@@ -48,7 +51,8 @@ export const mockUsers: User[] = [
     created_at: "2024-03-12T08:00:00Z",
     clocks: [],
     managed_team: null,
-    team: null
+    team: null,
+    keycloak_id: "keycloak-uuid-4"
   },
   {
     id: 5,
@@ -60,7 +64,8 @@ export const mockUsers: User[] = [
     created_at: "2024-02-20T08:00:00Z",
     clocks: [],
     managed_team: null,
-    team: null
+    team: null,
+    keycloak_id: "keycloak-uuid-5"
   },
   {
     id: 6,
@@ -72,7 +77,8 @@ export const mockUsers: User[] = [
     created_at: "2024-04-01T08:00:00Z",
     clocks: [],
     managed_team: null,
-    team: null
+    team: null,
+    keycloak_id: "keycloak-uuid-6"
   },
   {
     id: 7,
@@ -84,7 +90,8 @@ export const mockUsers: User[] = [
     created_at: "2024-04-08T08:00:00Z",
     clocks: [],
     managed_team: null,
-    team: null
+    team: null,
+    keycloak_id: "keycloak-uuid-7"
   }
 ];
 

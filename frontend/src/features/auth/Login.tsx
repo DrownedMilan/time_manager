@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
 import { Lock, Mail } from "lucide-react";
-import { UserRole } from "../types";
+import { UserRole } from "../../types";
 import logo from "/primebank_logo.png";
 
 interface LoginProps {

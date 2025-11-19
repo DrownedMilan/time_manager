@@ -11,7 +11,7 @@ import { Badge } from "./ui/badge";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { User, UserRole } from "../types";
+import { type User, UserRole } from "../types"
 import { Edit } from "lucide-react";
 
 interface UsersTableProps {

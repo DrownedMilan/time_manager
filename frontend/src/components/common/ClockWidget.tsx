@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Button } from "./ui/button";
+import { Button } from "../../components/ui/button";
 import { Clock as ClockIcon, Play, Square } from "lucide-react";
-import { Clock } from "../types";
+import type { Clock } from "../../types";
 
 interface ClockWidgetProps {
   userId: number;
@@ -10,7 +10,7 @@ interface ClockWidgetProps {
   onClockOut: () => void;
 }
 
-export default function ClockWidget({ userId, currentClock, onClockIn, onClockOut }: ClockWidgetProps) {
+export default function ClockWidget({ currentClock, onClockIn, onClockOut }: ClockWidgetProps) {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [workDuration, setWorkDuration] = useState("00:00:00");
 

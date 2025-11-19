@@ -1,8 +1,8 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "./ui/dialog";
-import { Team } from "../types";
-import { Badge } from "./ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import type { Team } from "../../types";
+import { Badge } from "@/components/ui/badge";
 import { Users, Mail, Clock as ClockIcon, Calendar } from "lucide-react";
-import { mockClocks, mockUsers } from "../lib/mockData";
+import { mockClocks, mockUsers } from "../../lib/mockData";
 
 interface TeamDetailViewProps {
   team: Team | null;

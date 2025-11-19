@@ -4,13 +4,13 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "./ui/dialog";
-import { ScrollArea } from "./ui/scroll-area";
-import { User } from "../types";
-import { Avatar, AvatarFallback } from "./ui/avatar";
+} from "../../components/ui/dialog";
+import { ScrollArea } from "../../components/ui/scroll-area";
+import type { UserMinimal } from "@/types";
+import { Avatar, AvatarFallback } from "../../components/ui/avatar";
 
 interface EmployeeMetric {
-  user: User;
+  user: UserMinimal;
   value: number;
   displayValue: string;
 }
