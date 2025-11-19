@@ -22,7 +22,7 @@ export default function Login(
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = () => {
     setLoading(true);
   };
 
