@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 from sqlmodel import SQLModel, Field, Relationship
-from pydantic import EmailStr, field_validator, Field as PydanticField
-from typing import Optional, List
+from sqlalchemy import Column, VARCHAR
+from sqlalchemy.dialects.postgresql import JSON
+from pydantic import EmailStr, field_validator
 from datetime import datetime, timezone
+from typing import Optional, List, ClassVar
 import phonenumbers
 
 
@@ -10,62 +14,79 @@ import phonenumbers
 # =====================================================
 
 class User(SQLModel, table=True):
-    __tablename__ = "users"
+    __tablename__: ClassVar[str] = "users"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    first_name: str = Field(index=True, nullable=False)
-    last_name: str = Field(index=True, nullable=False)
-    email: EmailStr = Field(index=True, unique=True, nullable=False)
-    phone_number: str = Field(index=True, unique=True)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), nullable=False)
 
-    # 🔹 Ajout pour Keycloak
-    keycloak_id: str = Field(default="", index=True, unique=True)
+    first_name: str = Field(
+        sa_column=Column("first_name", VARCHAR, nullable=False)
+    )
+
+    last_name: str = Field(
+        sa_column=Column("last_name", VARCHAR, nullable=False)
+    )
+
+    email: EmailStr = Field(
+        sa_column=Column("email", VARCHAR, unique=True, nullable=False, index=True)
+    )
+
+    phone_number: Optional[str] = Field(
+        default=None,
+        sa_column=Column("phone_number", VARCHAR, unique=True, nullable=True)
+    )
+
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column("created_at", nullable=False)
+    )
+
+    keycloak_id: str = Field(
+        default="",
+        sa_column=Column("keycloak_id", VARCHAR, unique=True, nullable=False, index=True)
+    )
+
+    # Roles stockés en JSON (Keycloak)
+    realm_roles: List[str] = Field(
+        sa_column=Column(JSON, nullable=False, default=list)
+    )
 
     # Relations
     clocks: list["Clock"] = Relationship(back_populates="user")
-    team_id: Optional[int] = Field(default=None, foreign_key="teams.id")
 
-    team: Optional["Team"] = Relationship(
-        back_populates="members",
-        sa_relationship_kwargs={"foreign_keys": "[User.team_id]"}
-    )
-    managed_team: Optional["Team"] = Relationship(
-        back_populates="manager",
-        sa_relationship_kwargs={"foreign_keys": "[Team.manager_id]"}
-    )
+    team_id: Optional[int] = Field(default=None, foreign_key="teams.id")
+    team: Optional["Team"] = Relationship(back_populates="members")
+
+    managed_team: Optional["Team"] = Relationship(back_populates="manager")
 
     # Validators
     @field_validator("first_name")
-    def normalize_first_name(cls, v):
+    def normalize_first_name(cls, v: str) -> str:
         return v.strip().capitalize()
 
     @field_validator("last_name")
-    def normalize_last_name(cls, v):
+    def normalize_last_name(cls, v: str) -> str:
         return v.strip().upper()
 
     @field_validator("email")
-    def normalize_email(cls, v):
+    def normalize_email(cls, v: str) -> str:
         return v.strip().lower()
 
     @field_validator("phone_number")
-    def validate_phone_number(cls, v):
+    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
+        if not v:
+            return None
         try:
             number = phonenumbers.parse(v, "FR")
             if not phonenumbers.is_valid_number(number):
                 raise ValueError("Invalid phone number")
             return phonenumbers.format_number(number, phonenumbers.PhoneNumberFormat.E164)
-        except phonenumbers.NumberParseException:
+        except Exception:
             raise ValueError("Invalid phone number format")
 
+    # Utility properties
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
-
-    def __repr__(self) -> str:
-        return f"[{self.id}] {self.last_name} {self.first_name} - {self.email}"
-
-    __str__ = __repr__
 
 
 # =====================================================
@@ -77,25 +98,6 @@ class UserCreate(SQLModel):
     last_name: str
     email: EmailStr
     phone_number: str
-
-
-class UserPublic(SQLModel):
-    id: int
-    first_name: str
-    last_name: str
-    email: str
-    phone_number: str
-    created_at: datetime
-
-    # 🔹 Ajout Keycloak
-    keycloak_id: str
-
-    # 🔹 realm_roles doit être pydantic-only → default_factory propre
-    realm_roles: List[str] = PydanticField(default_factory=list)
-
-    clocks: list["ClockPublic"]
-    managed_team: Optional["Team"]
-    team: Optional["Team"]
 
 
 class UserUpdate(SQLModel):
@@ -112,17 +114,45 @@ class UserMinimal(SQLModel):
     email: EmailStr
 
 
+class UserMe(SQLModel):
+    id: int
+    email: EmailStr
+    first_name: str
+    last_name: str
+    realm_roles: list[str]
+
+
+class UserPublic(SQLModel):
+    id: int
+    email: str
+    first_name: str
+    last_name: str
+    phone_number: Optional[str]
+    created_at: datetime
+    keycloak_id: str
+    realm_roles: list[str]
+
+
 # =====================================================
 #                      CLOCK MODEL
 # =====================================================
 
 class Clock(SQLModel, table=True):
-    __tablename__ = "clocks"
+    __tablename__: ClassVar[str] = "clocks"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    user_id: int = Field(foreign_key="users.id", index=True)
-    clock_in: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    clock_out: Optional[datetime] = Field(default=None)
+    user_id: int = Field(foreign_key="users.id")
+
+    clock_in: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column("clock_in", nullable=False)
+    )
+
+    clock_out: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column("clock_out", nullable=True)
+    )
+
     user: Optional[User] = Relationship(back_populates="clocks")
 
 
@@ -143,28 +173,39 @@ class ClockPublic(SQLModel):
 # =====================================================
 
 class Team(SQLModel, table=True):
-    __tablename__ = "teams"
+    __tablename__: ClassVar[str] = "teams"
 
     id: Optional[int] = Field(default=None, primary_key=True)
-    name: str = Field(index=True, unique=True, nullable=False)
-    description: str = Field(index=True, nullable=False)
-    manager_id: Optional[int] = Field(default=None, foreign_key="users.id")
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
-    manager: Optional["User"] = Relationship(
-        back_populates="managed_team",
-        sa_relationship_kwargs={"foreign_keys": "[Team.manager_id]"}
+    name: str = Field(
+        sa_column=Column("name", VARCHAR, unique=True, nullable=False)
     )
-    members: list["User"] = Relationship(
-        back_populates="team",
-        sa_relationship_kwargs={"foreign_keys": "[User.team_id]"}
+
+    description: str = Field(
+        sa_column=Column("description", VARCHAR, nullable=False)
     )
+
+    manager_id: Optional[int] = Field(default=None, foreign_key="users.id")
+
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column("created_at", nullable=False)
+    )
+
+    manager: Optional[User] = Relationship(back_populates="managed_team")
+    members: list[User] = Relationship(back_populates="team")
 
 
 class TeamCreate(SQLModel):
     name: str
     description: str
     manager_id: Optional[int] = None
+
+
+class TeamMinimal(SQLModel):
+    id: int
+    name: str
+    manager: Optional[UserMinimal]
 
 
 class TeamPublic(SQLModel):
@@ -181,9 +222,3 @@ class TeamUpdate(SQLModel):
     name: Optional[str] = None
     description: Optional[str] = None
     manager_id: Optional[int] = None
-
-
-class TeamMinimal(SQLModel):
-    id: int
-    name: str
-    manager: Optional[UserMinimal]
