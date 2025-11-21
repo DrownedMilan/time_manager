@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
+
 import keycloak from './keycloak'
 import { AuthContext } from './AuthContext'
+import { UserContext } from '@/hooks/useUserContext'
+
+import { api } from '@/services/api'
+import type { AuthUser, User, UserRole } from '@/types'
+
 import { logout } from './logout'
 
 interface KeycloakProviderProps {
@@ -12,66 +18,60 @@ export const KeycloakProvider = ({ children }: KeycloakProviderProps) => {
   const [initialized, setInitialized] = useState(false)
   const [authenticated, setAuthenticated] = useState(false)
 
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null)
+  const [user, setUser] = useState<User | null>(null) // <-- backend full user
+
   useEffect(() => {
     keycloak
       .init({
-        // onLoad: 'check-sso', // ou 'login-required' si tu veux forcer le login
         onLoad: 'login-required',
         pkceMethod: 'S256',
         silentCheckSsoRedirectUri: `${window.location.origin}/silent-check-sso.html`,
       })
-      .then((auth) => {
+      .then(async (auth) => {
         setAuthenticated(auth)
         setInitialized(true)
 
-        if (auth && keycloak.token) {
-          localStorage.setItem('kc_token', keycloak.token)
-          console.log('✅ Token complet :', keycloak.token)
-          console.log('🧩 Token décodé :', keycloak.tokenParsed)
+        if (!auth || !keycloak.token) return
+
+        localStorage.setItem('kc_token', keycloak.token)
+
+        // 1️⃣ Load Keycloak profile
+        const profile = await keycloak.loadUserProfile()
+
+        const role = (
+          keycloak.tokenParsed?.realm_access?.roles?.[0] || 'employee'
+        ).toLowerCase() as UserRole
+
+        const kcUser: AuthUser = {
+          keycloak_id: profile.id || '',
+          email: profile.email || '',
+          first_name: profile.firstName || '',
+          last_name: profile.lastName || '',
+          role,
         }
 
-        const refreshInterval = setInterval(async () => {
-          try {
-            const refreshed = await keycloak.updateToken(60)
-            if (refreshed && keycloak.token) {
-              localStorage.setItem('kc_token', keycloak.token)
-              console.info('[Keycloak] 🔄 Token refreshed')
-            }
-          } catch (err) {
-            console.warn('[Keycloak] Token refresh failed', err)
-          }
-        }, 60000) // toutes les 60s
+        setAuthUser(kcUser)
+        await keycloak.updateToken(30).catch(() => keycloak.login())
+        console.log('Keycloak token:', keycloak.token)
+        console.log('Token parsed:', keycloak.tokenParsed)
+        console.log('Token expires in:', (keycloak.tokenParsed?.exp || 0) - Date.now() / 1000)
 
-        return () => clearInterval(refreshInterval)
+        // 2️⃣ Load FULL User from backend
+        const res = await api.get<User>('/users/me', {
+          headers: { Authorization: `Bearer ${keycloak.token}` },
+        })
+
+        setUser(res.data)
       })
-      .catch((err) => {
-        console.error('[Keycloak] Init error', err)
-        setInitialized(true)
-      })
+      .catch(() => setInitialized(true))
   }, [])
 
-  if (!initialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-900 via-indigo-800 to-purple-900 text-white">
-        <div className="text-center">
-          <p className="text-xl font-semibold animate-pulse">Chargement...</p>
-        </div>
-      </div>
-    )
-  }
+  if (!initialized) return <div>Chargement...</div>
 
   return (
-    <AuthContext.Provider
-      value={
-        {
-          keycloak,
-          authenticated,
-          initialized,
-          logout: logout,
-        }
-      }
-    >
-      {children}
+    <AuthContext.Provider value={{ keycloak, authenticated, initialized, logout, user: authUser }}>
+      <UserContext.Provider value={{ user, setUser }}>{children}</UserContext.Provider>
     </AuthContext.Provider>
   )
 }

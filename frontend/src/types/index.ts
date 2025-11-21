@@ -1,12 +1,18 @@
-// Type definitions based on API models
+export interface AuthUser {
+  keycloak_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: UserRole;
+}
 
 export const UserRole = {
-  EMPLOYEE: "Employee",
-  MANAGER: "Manager",
-  ORGANIZATION: "Organization",
-} as const
+  EMPLOYEE: "employee",
+  MANAGER: "manager",
+  ORGANIZATION: "organization",
+} as const;
 
-export type UserRole = (typeof UserRole)[keyof typeof UserRole]
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 export interface UserMinimal {
   id: number;
   first_name: string;

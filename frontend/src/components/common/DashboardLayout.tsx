@@ -1,61 +1,69 @@
-import { type ReactNode, useState } from "react";
-import { Button } from "../../components/ui/button";
-import { LogOut, User, UsersRound, Plus, Building2 } from "lucide-react";
-import { UserRole } from "../../types";
-import PasswordChangeDialog from "../../features/auth/PasswordChangeDialog";
-import EmployeeEditDialog from "../../features/employees/EmployeeEditDialog";
-import logo from "/primebank_logo.png";
+// src/components/layout/DashboardLayout.tsx
+
+import { type ReactNode, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { LogOut, User, UsersRound, Plus, Building2 } from 'lucide-react'
+import PasswordChangeDialog from '@/features/auth/PasswordChangeDialog'
+import EmployeeEditDialog from '@/features/employees/EmployeeEditDialog'
+import logo from '/primebank_logo.png'
+import { useUser } from '@/hooks/useUser'
+import { UserRole } from '@/types'
+import { useAuth } from '@/hooks/useAuth'
 
 interface DashboardLayoutProps {
-  children: ReactNode;
-  userRole: UserRole;
-  userName: string;
-  userEmail: string;
-  onLogout: () => void;
+  children: ReactNode
 }
 
-export default function DashboardLayout({ children, userRole, userName, userEmail, onLogout }: DashboardLayoutProps) {
-  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
-  const [isEmployeeEditOpen, setIsEmployeeEditOpen] = useState(false);
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+  const { user } = useUser()
+  const { logout } = useAuth()
 
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
+  const [isEmployeeEditOpen, setIsEmployeeEditOpen] = useState(false)
+
+  if (!user) return null
+
+  console.log('DashboardLayout user:', user)
+  
   const getRoleDisplay = () => {
-    switch (userRole) {
+    switch (user.role) {
       case UserRole.ORGANIZATION:
-        return "Organization Admin";
+        return 'Organization Admin'
       case UserRole.MANAGER:
-        return "Team Manager";
+        return 'Team Manager'
       default:
-        return "Employee";
+        return 'Employee'
     }
-  };
+  }
 
   const getRoleIcon = () => {
-    switch (userRole) {
+    switch (user.role) {
       case UserRole.ORGANIZATION:
-        return <Building2 className="w-5 h-5" />;
+        return <Building2 className="w-5 h-5" />
       case UserRole.MANAGER:
-        return <UsersRound className="w-5 h-5" />;
+        return <UsersRound className="w-5 h-5" />
       default:
-        return <User className="w-5 h-5" />;
+        return <User className="w-5 h-5" />
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-slate-900 relative overflow-hidden">
-      {/* Animated background */}
-      <div className="absolute inset-0 overflow-hidden">
+      {/* Background effects */}
+      <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"></div>
       </div>
 
       {/* Header */}
-      <header className="relative border-b border-white/10 backdrop-blur-xl bg-white/5">
+      <header className="relative z-20 border-b border-white/10 backdrop-blur-xl bg-white/5">
         <div className="container mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-xl flex items-center justify-center p-2">
-                <img src={logo} alt="PrimeBank Logo" className="w-full h-full object-contain" />
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-xl p-2 flex items-center justify-center">
+                <img src={logo} className="w-full h-full" />
               </div>
+
               <div>
                 <h1 className="text-white/90">PrimeBank</h1>
                 <p className="text-xs text-white/60">{getRoleDisplay()}</p>
@@ -63,34 +71,34 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
             </div>
 
             <div className="flex items-stretch gap-3">
-              {userRole === UserRole.ORGANIZATION && (
+              {user.role === UserRole.ORGANIZATION && (
                 <Button
                   onClick={() => setIsEmployeeEditOpen(true)}
-                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white h-auto px-3 py-1 text-sm"
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-3 py-1 text-sm"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1.5" />
                   Add Employee
                 </Button>
               )}
-              
-              <div 
+
+              <div
                 onClick={() => setIsPasswordDialogOpen(true)}
-                className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl backdrop-blur-xl bg-gradient-to-br from-white/5 to-white/10 border border-white/20 hover:border-blue-400/50 hover:from-white/10 hover:to-white/15 cursor-pointer transition-all duration-300 group relative overflow-hidden"
+                className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl backdrop-blur-xl bg-white/10 border border-white/20 cursor-pointer transition-all"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-cyan-500/5 to-blue-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                <div className="w-7 h-7 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:shadow-blue-500/40 group-hover:scale-110 transition-all duration-300 relative z-10">
+                <div className="w-7 h-7 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-lg flex items-center justify-center">
                   {getRoleIcon()}
                 </div>
-                <div className="text-right relative z-10">
-                  <p className="text-sm text-white group-hover:text-white transition-colors duration-300">{userName}</p>
-                  <p className="text-xs text-white/60 group-hover:text-blue-300/80 transition-colors duration-300">{getRoleDisplay()}</p>
+
+                <div>
+                  <p className="text-sm text-white">{user.first_name}</p>
+                  <p className="text-xs text-white/60">{getRoleDisplay()}</p>
                 </div>
               </div>
-              
+
               <Button
                 variant="outline"
-                onClick={onLogout}
-                className="bg-white/5 border-white/20 text-white/80 hover:bg-white/10 hover:text-white h-auto px-3 py-1 text-sm"
+                onClick={logout}
+                className="bg-white/5 border-white/20 text-white/80 hover:bg-white/10 hover:text-white px-3 py-1 text-sm"
               >
                 <LogOut className="w-3.5 h-3.5 mr-1.5" />
                 Logout
@@ -100,26 +108,20 @@ export default function DashboardLayout({ children, userRole, userName, userEmai
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="relative">
-        {children}
-      </main>
+      {/* MAIN CONTENT */}
+      <main className="relative z-10 container mx-auto px-4 sm:px-6 py-8">{children}</main>
 
-      {/* Password Change Dialog */}
+      {/* Dialogs */}
       <PasswordChangeDialog
         open={isPasswordDialogOpen}
         onOpenChange={setIsPasswordDialogOpen}
-        userName={userName}
-        userEmail={userEmail}
+        userName={user.first_name}
+        userEmail={user.email}
       />
 
-      {/* Employee Edit Dialog */}
-      {userRole === UserRole.ORGANIZATION && (
-        <EmployeeEditDialog
-          open={isEmployeeEditOpen}
-          onOpenChange={setIsEmployeeEditOpen}
-        />
+      {user.role === UserRole.ORGANIZATION && (
+        <EmployeeEditDialog open={isEmployeeEditOpen} onOpenChange={setIsEmployeeEditOpen} />
       )}
     </div>
-  );
+  )
 }

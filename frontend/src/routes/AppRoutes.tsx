@@ -1,35 +1,39 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import LoginPage from "@/features/auth/LoginPage";
-import EmployeeDashboard from "@/features/dashboard/EmployeeDashboard";
-import ManagerDashboard from "@/features/dashboard/ManagerDashboard";
-import OrganizationDashboard from "@/features/dashboard/OrganizationDashboard";
+// src/routes/AppRoutes.tsx
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  allowedRoles?: string[];
-}
+import { Routes, Route, Navigate } from "react-router-dom"
+import { useAuth } from "@/hooks/useAuth"
+// import { useUser } from "@/hooks/useUser"
 
-export const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
-  const { keycloak, authenticated } = useAuth();
+import LoginPage from "@/features/auth/LoginPage"
+import EmployeeDashboard from "@/features/dashboard/EmployeeDashboard"
+import ManagerDashboard from "@/features/dashboard/ManagerDashboard"
+import OrganizationDashboard from "@/features/dashboard/OrganizationDashboard"
 
-  if (!authenticated) return <Navigate to="/login" replace />;
-  if (!keycloak?.tokenParsed) return <div>Chargement...</div>;
+import DashboardLayout from "@/components/common/DashboardLayout"
 
-  const roles = keycloak.tokenParsed.realm_access?.roles || [];
+export const ProtectedRoute = ({ children, allowedRoles }: any) => {
+  const { keycloak, authenticated } = useAuth()
 
-  if (allowedRoles && !allowedRoles.some(r => roles.includes(r))) {
-    return <Navigate to="/unauthorized" replace />;
+  if (!authenticated) return <Navigate to="/login" replace />
+  if (!keycloak?.tokenParsed) return <div>Chargement...</div>
+
+  const roles =
+    keycloak.tokenParsed.realm_access?.roles?.map((r: string) => r.toLowerCase()) || []
+
+  if (allowedRoles && !allowedRoles.some((r: any) => roles.includes(r.toLowerCase()))) {
+    return <Navigate to="/unauthorized" replace />
   }
 
-  return <>{children}</>;
-};
+  return children
+}
 
 export const AppRoutes = () => {
-  const { authenticated } = useAuth();
+  const { authenticated } = useAuth()
 
   return (
     <Routes>
+
+      {/* LOGIN */}
       <Route
         path="/login"
         element={authenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />}
@@ -39,8 +43,10 @@ export const AppRoutes = () => {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute allowedRoles={["Employee"]}>
-            <EmployeeDashboard />
+          <ProtectedRoute allowedRoles={["employee", "manager", "organization"]}>
+            <DashboardLayout>
+              <EmployeeDashboard />
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />
@@ -49,8 +55,10 @@ export const AppRoutes = () => {
       <Route
         path="/manager"
         element={
-          <ProtectedRoute allowedRoles={["Manager"]}>
-            <ManagerDashboard />
+          <ProtectedRoute allowedRoles={["manager"]}>
+            <DashboardLayout>
+              <ManagerDashboard />
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />
@@ -59,15 +67,19 @@ export const AppRoutes = () => {
       <Route
         path="/organization"
         element={
-          <ProtectedRoute allowedRoles={["Organization"]}>
-            <OrganizationDashboard />
+          <ProtectedRoute allowedRoles={["organization"]}>
+            <DashboardLayout>
+              <OrganizationDashboard />
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />
 
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="/unauthorized" element={<div>🚫 Accès refusé</div>} />
-      <Route path="*" element={<div>❌ 404</div>} />
+      {/* DEFAULTS */}
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/unauthorized" element={<div>🚫 Access Denied</div>} />
+      <Route path="*" element={<div>❌ 404 Not Found</div>} />
+
     </Routes>
-  );
-};
+  )
+}
