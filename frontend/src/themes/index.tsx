@@ -1,4 +1,3 @@
-// src/themes/index.tsx
 import { createTheme, type Theme } from '@mui/material/styles'
 import { getThemeComponents } from './components'
 

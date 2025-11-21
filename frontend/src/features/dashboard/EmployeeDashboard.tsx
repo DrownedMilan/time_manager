@@ -4,7 +4,7 @@ import ClockWidget from '@/components/common/ClockWidget'
 // import ClockRecordsTable from "@/components/ClockRecordsTable";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Clock, User as UserIcon, Calendar, ClockAlert, Mail, Phone } from 'lucide-react'
-import { type User, type Clock as ClockType } from '../../types'
+import { type Clock as ClockType } from '@/types'
 import { mockClocks, mockUsers } from '../../lib/mockData'
 import { useUser } from '@/hooks/useUser'
 
@@ -111,11 +111,14 @@ export default function EmployeeDashboard() {
     )
   }
 
+  console.log("created_at raw:", user.created_at)
+
+
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8">
         <h2 className="text-white/90 mb-[6px] mt-[0px] mr-[0px] ml-[0px]">
-          Welcome back, {user.first_name}!
+          Welcome back, {user.first_name}! (Employee Dashboard)
         </h2>
       </div>
 
@@ -129,7 +132,7 @@ export default function EmployeeDashboard() {
             </div>
             <div className="flex flex-col">
               <span className="text-white/50 text-xs mb-1">Phone</span>
-              <span className="text-white/90">{user.phone_number}</span>
+              <span className="text-white/90">{user.phone_number || 'N/A'}</span>
             </div>
             <div className="flex flex-col">
               <span className="text-white/50 text-xs mb-1">Team</span>

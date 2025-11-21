@@ -11,13 +11,24 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/me", response_model=UserMe)
 def get_me(user: UserPublic = Depends(get_current_user)):
+    roles = [r.lower() for r in user.realm_roles]
+
+    if "organization" in roles:
+        role = "organization"
+    elif "manager" in roles:
+        role = "manager"
+    else:
+        role = "employee"
+
     return UserMe(
         id=user.id,
         email=user.email,
         first_name=user.first_name,
         last_name=user.last_name,
-        realm_roles=user.realm_roles,
+        role=role,
+        created_at=user.created_at
     )
+
 
 # Create User
 @router.post("/", response_model=UserPublic)

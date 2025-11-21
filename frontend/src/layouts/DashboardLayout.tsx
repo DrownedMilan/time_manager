@@ -1,5 +1,3 @@
-// src/components/layout/DashboardLayout.tsx
-
 import { type ReactNode, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { LogOut, User, UsersRound, Plus, Building2 } from 'lucide-react'
@@ -24,7 +22,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   if (!user) return null
 
   console.log('DashboardLayout user:', user)
-  
+
   const getRoleDisplay = () => {
     switch (user.role) {
       case UserRole.ORGANIZATION:
@@ -74,7 +72,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               {user.role === UserRole.ORGANIZATION && (
                 <Button
                   onClick={() => setIsEmployeeEditOpen(true)}
-                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-3 py-1 text-sm"
+                  className="h-10 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white px-3 py-1 text-sm"
                 >
                   <Plus className="w-3.5 h-3.5 mr-1.5" />
                   Add Employee
@@ -83,7 +81,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
               <div
                 onClick={() => setIsPasswordDialogOpen(true)}
-                className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl backdrop-blur-xl bg-white/10 border border-white/20 cursor-pointer transition-all"
+                className="h-10 hidden sm:flex items-center gap-2 px-3 py-1 rounded-xl backdrop-blur-xl bg-white/10 border border-white/20 cursor-pointer transition-all"
               >
                 <div className="w-7 h-7 bg-gradient-to-br from-blue-400 to-cyan-500 rounded-lg flex items-center justify-center">
                   {getRoleIcon()}
@@ -96,11 +94,10 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               </div>
 
               <Button
-                variant="outline"
                 onClick={logout}
-                className="bg-white/5 border-white/20 text-white/80 hover:bg-white/10 hover:text-white px-3 py-1 text-sm"
+                className="h-10 px-4 bg-white/5 border border-white/20 text-white/90 hover:bg-white/10 rounded-xl flex items-center"
               >
-                <LogOut className="w-3.5 h-3.5 mr-1.5" />
+                <LogOut className="w-4 h-4 mr-2" />
                 Logout
               </Button>
             </div>

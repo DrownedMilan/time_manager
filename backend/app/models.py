@@ -184,8 +184,8 @@ class UserMe(SQLModel):
     email: EmailStr
     first_name: str
     last_name: str
-    realm_roles: List[str]
-
+    role: str
+    created_at: datetime
 
 class UserCreate(SQLModel):
     first_name: str

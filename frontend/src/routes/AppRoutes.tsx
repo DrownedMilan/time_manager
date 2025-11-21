@@ -1,49 +1,71 @@
-// src/routes/AppRoutes.tsx
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
-import { Routes, Route, Navigate } from "react-router-dom"
-import { useAuth } from "@/hooks/useAuth"
-// import { useUser } from "@/hooks/useUser"
+import LoginPage from "@/features/auth/LoginPage";
+import EmployeeDashboard from "@/features/dashboard/EmployeeDashboard";
+import ManagerDashboard from "@/features/dashboard/ManagerDashboard";
+import OrganizationDashboard from "@/features/dashboard/OrganizationDashboard";
 
-import LoginPage from "@/features/auth/LoginPage"
-import EmployeeDashboard from "@/features/dashboard/EmployeeDashboard"
-import ManagerDashboard from "@/features/dashboard/ManagerDashboard"
-import OrganizationDashboard from "@/features/dashboard/OrganizationDashboard"
+import DashboardLayout from "@/layouts/DashboardLayout";
 
-import DashboardLayout from "@/components/common/DashboardLayout"
+const getRoles = (tokenParsed: any): string[] => {
+  return (
+    tokenParsed?.realm_access?.roles?.map((r: string) => r.toLowerCase()) || []
+  );
+};
 
-export const ProtectedRoute = ({ children, allowedRoles }: any) => {
-  const { keycloak, authenticated } = useAuth()
+const getHomeRoute = (roles: string[]): string => {
+  if (roles.includes("organization")) return "/organization";
+  if (roles.includes("manager")) return "/manager";
+  return "/dashboard"; // default employee
+};
 
-  if (!authenticated) return <Navigate to="/login" replace />
-  if (!keycloak?.tokenParsed) return <div>Chargement...</div>
+const ProtectedRoute = ({
+  allowedRoles,
+  children,
+}: {
+  allowedRoles: string[];
+  children: React.ReactNode;
+}) => {
+  const { authenticated, keycloak } = useAuth();
 
-  const roles =
-    keycloak.tokenParsed.realm_access?.roles?.map((r: string) => r.toLowerCase()) || []
+  if (!authenticated) return <Navigate to="/login" replace />;
+  if (!keycloak?.tokenParsed) return <div>Loading...</div>;
 
-  if (allowedRoles && !allowedRoles.some((r: any) => roles.includes(r.toLowerCase()))) {
-    return <Navigate to="/unauthorized" replace />
-  }
+  const roles = getRoles(keycloak.tokenParsed);
 
-  return children
-}
+  const isAllowed =
+    allowedRoles.length === 0 ||
+    allowedRoles.some((role) => roles.includes(role.toLowerCase()));
+
+  return isAllowed ? children : <Navigate to="/unauthorized" replace />;
+};
 
 export const AppRoutes = () => {
-  const { authenticated } = useAuth()
+  const { authenticated, keycloak } = useAuth();
 
   return (
     <Routes>
-
       {/* LOGIN */}
       <Route
         path="/login"
-        element={authenticated ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+        element={
+          authenticated && keycloak.tokenParsed ? (
+            <Navigate
+              to={getHomeRoute(getRoles(keycloak.tokenParsed))}
+              replace
+            />
+          ) : (
+            <LoginPage />
+          )
+        }
       />
 
       {/* EMPLOYEE */}
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute allowedRoles={["employee", "manager", "organization"]}>
+          <ProtectedRoute allowedRoles={["employee"]}>
             <DashboardLayout>
               <EmployeeDashboard />
             </DashboardLayout>
@@ -75,11 +97,11 @@ export const AppRoutes = () => {
         }
       />
 
-      {/* DEFAULTS */}
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      {/* DEFAULT REDIRECT */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+
       <Route path="/unauthorized" element={<div>🚫 Access Denied</div>} />
       <Route path="*" element={<div>❌ 404 Not Found</div>} />
-
     </Routes>
-  )
-}
+  );
+};

@@ -1,6 +1,5 @@
-// src/services/users.ts
 import { api } from './api'
-import type { User } from '../types/user'
+import type { User } from '@/types'
 
 export async function getUsers(): Promise<User[]> {
 	try {
