@@ -1,7 +1,6 @@
-// src/services/clocks.ts
 import { api } from './api'
-import type { Clock } from '@/types/clock'
-import type { User } from '@/types/user'
+import type { Clock } from '@/types'
+import type { User } from '@/types'
 
 type ClockAPI = {
   id: number

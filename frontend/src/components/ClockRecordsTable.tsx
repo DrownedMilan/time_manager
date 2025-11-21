@@ -1,84 +1,87 @@
-import { useState, useMemo } from "react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "./ui/table";
-import { Badge } from "./ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { Clock, User } from "../types";
-import { Clock as ClockIcon } from "lucide-react";
-import { mockUsers } from "../lib/mockData";
-import EmployeeDetailView from "./EmployeeDetailView";
+import { useState, useMemo } from 'react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
+import { Badge } from './ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
+import type { Clock, User } from '../types'
+import { Clock as ClockIcon } from 'lucide-react'
+import { mockUsers } from '../lib/mockData'
+import EmployeeDetailView from '../features/employees/EmployeeDetailView'
 
 interface ClockRecordsTableProps {
-  clocks: Clock[];
-  showUser?: boolean;
+  clocks: Clock[]
+  showUser?: boolean
 }
 
 export default function ClockRecordsTable({ clocks, showUser = true }: ClockRecordsTableProps) {
-  const [dateFilter, setDateFilter] = useState("all");
-  const [employeeFilter, setEmployeeFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [dateFilter, setDateFilter] = useState('all')
+  const [employeeFilter, setEmployeeFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
 
   const calculateDuration = (clockIn: string, clockOut: string | null) => {
-    if (!clockOut) return "In Progress";
-    
-    const start = new Date(clockIn);
-    const end = new Date(clockOut);
-    const diff = end.getTime() - start.getTime();
-    
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    
-    return `${hours}h ${minutes}m`;
-  };
+    if (!clockOut) return 'In Progress'
+
+    const start = new Date(clockIn)
+    const end = new Date(clockOut)
+    const diff = end.getTime() - start.getTime()
+
+    const hours = Math.floor(diff / (1000 * 60 * 60))
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+
+    return `${hours}h ${minutes}m`
+  }
 
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-  };
+    const date = new Date(dateString)
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+  }
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
 
   const handleEmployeeClick = (userId: string) => {
-    const fullUser = mockUsers.find(u => u.id === userId);
+    const fullUser = mockUsers.find((u) => String(u.id) === userId)
     if (fullUser) {
-      setSelectedEmployee(fullUser);
-      setIsDetailOpen(true);
+      setSelectedEmployee(fullUser)
+      setIsDetailOpen(true)
     }
-  };
+  }
 
   // Extract unique values for dropdown filters
   const uniqueDates = useMemo(() => {
-    const dates = new Set(clocks.map(clock => formatDate(clock.clock_in)));
-    return Array.from(dates).sort();
-  }, [clocks]);
+    const dates = new Set(clocks.map((clock) => formatDate(clock.clock_in)))
+    return Array.from(dates).sort()
+  }, [clocks])
 
   const uniqueEmployees = useMemo(() => {
-    if (!showUser) return [];
+    if (!showUser) return []
     const employees = new Set(
       clocks
-        .filter(clock => clock.user)
-        .map(clock => `${clock.user!.first_name} ${clock.user!.last_name}`)
-    );
-    return Array.from(employees).sort();
-  }, [clocks, showUser]);
+        .filter((clock) => clock.user)
+        .map((clock) => `${clock.user!.first_name} ${clock.user!.last_name}`),
+    )
+    return Array.from(employees).sort()
+  }, [clocks, showUser])
 
   // Filter clocks based on filter values
   const filteredClocks = clocks.filter((clock) => {
-    const dateMatch = dateFilter === "all" || formatDate(clock.clock_in) === dateFilter;
-    
-    const employeeMatch = !showUser || employeeFilter === "all" || 
-      (clock.user && `${clock.user.first_name} ${clock.user.last_name}` === employeeFilter);
-    
-    const statusMatch = statusFilter === "all" || 
-      (statusFilter === "active" && !clock.clock_out) ||
-      (statusFilter === "completed" && clock.clock_out);
-    
-    return dateMatch && employeeMatch && statusMatch;
-  });
+    const dateMatch = dateFilter === 'all' || formatDate(clock.clock_in) === dateFilter
+
+    const employeeMatch =
+      !showUser ||
+      employeeFilter === 'all' ||
+      (clock.user && `${clock.user.first_name} ${clock.user.last_name}` === employeeFilter)
+
+    const statusMatch =
+      statusFilter === 'all' ||
+      (statusFilter === 'active' && !clock.clock_out) ||
+      (statusFilter === 'completed' && clock.clock_out)
+
+    return dateMatch && employeeMatch && statusMatch
+  })
 
   if (clocks.length === 0) {
     return (
@@ -86,7 +89,7 @@ export default function ClockRecordsTable({ clocks, showUser = true }: ClockReco
         <ClockIcon className="w-12 h-12 text-white/30 mx-auto mb-4" />
         <p className="text-white/60">No clock records found</p>
       </div>
-    );
+    )
   }
 
   return (
@@ -100,7 +103,9 @@ export default function ClockRecordsTable({ clocks, showUser = true }: ClockReco
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/20">
-                  <SelectItem value="all" className="text-white">All Dates</SelectItem>
+                  <SelectItem value="all" className="text-white">
+                    All Dates
+                  </SelectItem>
                   {uniqueDates.map((date) => (
                     <SelectItem key={date} value={date} className="text-white">
                       {date}
@@ -116,7 +121,9 @@ export default function ClockRecordsTable({ clocks, showUser = true }: ClockReco
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-slate-900 border-white/20">
-                    <SelectItem value="all" className="text-white">All Employees</SelectItem>
+                    <SelectItem value="all" className="text-white">
+                      All Employees
+                    </SelectItem>
                     {uniqueEmployees.map((employee) => (
                       <SelectItem key={employee} value={employee} className="text-white">
                         {employee}
@@ -135,9 +142,15 @@ export default function ClockRecordsTable({ clocks, showUser = true }: ClockReco
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/20">
-                  <SelectItem value="all" className="text-white">All Statuses</SelectItem>
-                  <SelectItem value="active" className="text-white">Active</SelectItem>
-                  <SelectItem value="completed" className="text-white">Completed</SelectItem>
+                  <SelectItem value="all" className="text-white">
+                    All Statuses
+                  </SelectItem>
+                  <SelectItem value="active" className="text-white">
+                    Active
+                  </SelectItem>
+                  <SelectItem value="completed" className="text-white">
+                    Completed
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </TableHead>
@@ -148,27 +161,33 @@ export default function ClockRecordsTable({ clocks, showUser = true }: ClockReco
             <TableRow key={clock.id} className="border-white/10 hover:bg-white/5">
               <TableCell className="text-white/90">{formatDate(clock.clock_in)}</TableCell>
               {showUser && clock.user && (
-                <TableCell 
+                <TableCell
                   className="text-white/90 cursor-pointer hover:text-blue-300 transition-colors"
-                  onClick={() => handleEmployeeClick(clock.user!.id)}
+                  onClick={() => handleEmployeeClick(String(clock.user!.id))}
                 >
                   {clock.user.first_name} {clock.user.last_name}
                 </TableCell>
               )}
               <TableCell className="text-white/70">{formatTime(clock.clock_in)}</TableCell>
               <TableCell className="text-white/70">
-                {clock.clock_out ? formatTime(clock.clock_out) : "-"}
+                {clock.clock_out ? formatTime(clock.clock_out) : '-'}
               </TableCell>
               <TableCell className="text-white/70">
                 {calculateDuration(clock.clock_in, clock.clock_out)}
               </TableCell>
               <TableCell>
                 {clock.clock_out ? (
-                  <Badge variant="outline" className="bg-green-500/10 border-green-500/30 text-green-300">
+                  <Badge
+                    variant="outline"
+                    className="bg-green-500/10 border-green-500/30 text-green-300"
+                  >
                     Completed
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="bg-blue-500/10 border-blue-500/30 text-blue-300">
+                  <Badge
+                    variant="outline"
+                    className="bg-blue-500/10 border-blue-500/30 text-blue-300"
+                  >
                     Active
                   </Badge>
                 )}
@@ -178,11 +197,11 @@ export default function ClockRecordsTable({ clocks, showUser = true }: ClockReco
         </TableBody>
       </Table>
 
-      <EmployeeDetailView 
+      <EmployeeDetailView
         user={selectedEmployee}
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
       />
     </div>
-  );
+  )
 }

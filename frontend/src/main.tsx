@@ -1,5 +1,23 @@
 import { createRoot } from 'react-dom/client'
-import App from './App'
-import './index.css'
+import { lazy, Suspense } from 'react'
+import { KcPage, type KcContext } from './keycloak-theme/kc.gen'
 
-createRoot(document.getElementById('root')!).render(<App />)
+const AppEntrypoint = lazy(() => import('./main.app'))
+
+createRoot(document.getElementById('root')!).render(
+  <>
+    {window.kcContext ? (
+      <KcPage kcContext={window.kcContext} />
+    ) : (
+      <Suspense>
+        <AppEntrypoint />
+      </Suspense>
+    )}
+  </>,
+)
+
+declare global {
+  interface Window {
+    kcContext?: KcContext
+  }
+}

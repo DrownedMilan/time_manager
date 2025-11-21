@@ -1,7 +1,7 @@
 import { Box, Container } from '@mui/material'
 import { Outlet } from 'react-router-dom'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
+// import Header from '../../components/Header'
+// import Footer from '../../components/Footer'
 
 export default function AppLayout() {
   return (
@@ -16,7 +16,7 @@ export default function AppLayout() {
         isolation: 'isolate',
       }}
     >
-      <Header />
+      {/* <Header /> */}
       
       <Container
         maxWidth="xl"
@@ -41,7 +41,7 @@ export default function AppLayout() {
         </Box>
       </Container>
       
-      <Footer />
+      {/* <Footer /> */}
     </Box>
   )
 }

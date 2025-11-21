@@ -1,11 +1,18 @@
-// Type definitions based on API models
-
-export enum UserRole {
-  EMPLOYEE = "Employee",
-  MANAGER = "Manager",
-  ORGANIZATION = "Organization"
+export interface AuthUser {
+  keycloak_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: UserRole;
 }
 
+export const UserRole = {
+  EMPLOYEE: "employee",
+  MANAGER: "manager",
+  ORGANIZATION: "organization",
+} as const;
+
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 export interface UserMinimal {
   id: number;
   first_name: string;
@@ -44,4 +51,5 @@ export interface User {
   clocks: Clock[];
   managed_team: Team | null;
   team: Team | null;
+  keycloak_id: string;
 }

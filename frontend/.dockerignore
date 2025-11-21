@@ -1,4 +1,11 @@
 # ==========================================
+# Ignore Yarn internal folder (CRITICAL)
+# ==========================================
+.yarn/
+.pnp.*
+.yarnrc.yml
+
+# ==========================================
 # Ignore Node / Build files
 # ==========================================
 node_modules
@@ -53,7 +60,7 @@ __mocks__
 *.test.tsx
 
 # ==========================================
-# Ignore Docker files themselves (optional)
+# Ignore Docker files (optional)
 # ==========================================
 docker-compose.yml
 Dockerfile*
