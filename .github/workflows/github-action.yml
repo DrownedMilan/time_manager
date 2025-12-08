@@ -71,9 +71,9 @@ jobs:
         working-directory: frontend
         run: npm run lint || echo "⚠️ Lint warnings, but continuing"
 
-      - name: Run frontend tests
+      - name: Run frontend tests (Vitest)
         working-directory: frontend
-        run: npm test -- --watchAll=false || echo "⚠️ Tests failed, continuing build"
+        run: npm test -- --run || echo "⚠️ Tests failed, continuing build"
 
       - name: Build frontend
         working-directory: frontend
