@@ -173,10 +173,11 @@ class UserPublic(SQLModel):
 
 
 class UserMinimal(SQLModel):
-    id: int
-    first_name: str
-    last_name: str
-    email: EmailStr
+	id: int
+	first_name: str
+	last_name: str
+	email: EmailStr
+	phone_number: str
 
 
 class UserMe(SQLModel):
