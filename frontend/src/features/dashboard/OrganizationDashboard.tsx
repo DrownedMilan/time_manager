@@ -29,9 +29,8 @@ import { useUser } from '@/hooks/useUser'
 export default function OrganizationDashboard() {
   const { user } = useUser()
 
-  if (!user) 
-    return <div>Loading...</div>
-    
+  if (!user) return <div>Loading...</div>
+
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
   const [isTeamDetailOpen, setIsTeamDetailOpen] = useState(false)
   const [isAddTeamDialogOpen, setIsAddTeamDialogOpen] = useState(false)
@@ -39,11 +38,12 @@ export default function OrganizationDashboard() {
   const [isEmployeeEditOpen, setIsEmployeeEditOpen] = useState(false)
   const [editingTeam, setEditingTeam] = useState<Team | null>(null)
   const [isTeamEditOpen, setIsTeamEditOpen] = useState(false)
-  const [metricDialogOpen, setMetricDialogOpen] = useState<
-    'workTime' | 'lateTime' | 'overtime' | null
-  >(null)
+  const [metricDialogOpen, setMetricDialogOpen] = useState<'workTime' | 'lateTime' | 'overtime' | null>(null)
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
 
+  // =====================
+  // Base KPI data sources
+  // =====================
   const totalUsers = mockUsers.length
   const totalTeams = mockTeams.length
   const activeClocks = mockClocks.filter((c) => !c.clock_out).length
@@ -71,10 +71,10 @@ export default function OrganizationDashboard() {
     return acc
   }, 0)
 
-  // Calculate average total hours per employee
+  // Average total hours per employee (week)
   const avgTotalHours = totalUsers > 0 ? totalHoursThisWeek / totalUsers : 0
 
-  // Calculate Average Work Time per day for all employees
+  // Average shift duration (completed clocks only)
   const completedClocks = mockClocks.filter((c) => c.clock_out)
   const avgWorkTime =
     completedClocks.length > 0
@@ -84,7 +84,7 @@ export default function OrganizationDashboard() {
         }, 0) / completedClocks.length
       : 0
 
-  // Calculate Average Late Time (clocking in after 9:00 AM) for all employees
+  // Average late time (after 09:00)
   const lateClocks = mockClocks.filter((c) => {
     const clockInTime = new Date(c.clock_in)
     const hours = clockInTime.getHours()
@@ -103,7 +103,7 @@ export default function OrganizationDashboard() {
         }, 0) / lateClocks.length
       : 0
 
-  // Calculate Average Overtime Hours (clocking out after 17:00) for all employees
+  // Average overtime hours (after 17:00)
   const overtimeClocks = completedClocks.filter((c) => {
     const clockOutTime = new Date(c.clock_out!)
     const hours = clockOutTime.getHours()
@@ -122,33 +122,32 @@ export default function OrganizationDashboard() {
         }, 0) / overtimeClocks.length
       : 0
 
-  // Calculate individual employee metrics for ranking
+  // =====================
+  // Ranking helpers
+  // =====================
   const calculateEmployeeWorkTime = () => {
-    const userMetrics = mockUsers.map((user) => {
-      const userClocks = mockClocks.filter((c) => c.user_id === user.id && c.clock_out)
+    const userMetrics = mockUsers.map((u) => {
+      const userClocks = mockClocks.filter((c) => c.user_id === u.id && c.clock_out)
       const totalWorkTime = userClocks.reduce((acc, clock) => {
         const diff = new Date(clock.clock_out!).getTime() - new Date(clock.clock_in).getTime()
         return acc + diff / (1000 * 60 * 60)
       }, 0)
-      const avgWorkTime = userClocks.length > 0 ? totalWorkTime / userClocks.length : 0
-      return {
-        user,
-        value: avgWorkTime,
-        displayValue: `${avgWorkTime.toFixed(1)}h`,
-      }
+      const avg = userClocks.length > 0 ? totalWorkTime / userClocks.length : 0
+      return { user: u, value: avg, displayValue: `${avg.toFixed(1)}h` }
     })
     return userMetrics.sort((a, b) => b.value - a.value)
   }
 
   const calculateEmployeeLateTime = () => {
-    const userMetrics = mockUsers.map((user) => {
+    const userMetrics = mockUsers.map((u) => {
       const userClocks = mockClocks.filter((c) => {
-        if (c.user_id !== user.id) return false
+        if (c.user_id !== u.id) return false
         const clockInTime = new Date(c.clock_in)
         const hours = clockInTime.getHours()
         const minutes = clockInTime.getMinutes()
         return hours > 9 || (hours === 9 && minutes > 0)
       })
+
       const totalLateTime = userClocks.reduce((acc, clock) => {
         const clockInTime = new Date(clock.clock_in)
         const scheduledStart = new Date(clockInTime)
@@ -156,25 +155,23 @@ export default function OrganizationDashboard() {
         const lateDiff = clockInTime.getTime() - scheduledStart.getTime()
         return acc + lateDiff / (1000 * 60)
       }, 0)
-      const avgLateTime = userClocks.length > 0 ? totalLateTime / userClocks.length : 0
-      return {
-        user,
-        value: avgLateTime,
-        displayValue: `${avgLateTime.toFixed(0)} min`,
-      }
+
+      const avg = userClocks.length > 0 ? totalLateTime / userClocks.length : 0
+      return { user: u, value: avg, displayValue: `${avg.toFixed(0)} min` }
     })
     return userMetrics.sort((a, b) => b.value - a.value)
   }
 
   const calculateEmployeeOvertime = () => {
-    const userMetrics = mockUsers.map((user) => {
+    const userMetrics = mockUsers.map((u) => {
       const userClocks = mockClocks.filter((c) => {
-        if (c.user_id !== user.id || !c.clock_out) return false
+        if (c.user_id !== u.id || !c.clock_out) return false
         const clockOutTime = new Date(c.clock_out)
         const hours = clockOutTime.getHours()
         const minutes = clockOutTime.getMinutes()
         return hours > 17 || (hours === 17 && minutes > 0)
       })
+
       const totalOvertime = userClocks.reduce((acc, clock) => {
         const clockOutTime = new Date(clock.clock_out!)
         const scheduledEnd = new Date(clockOutTime)
@@ -182,17 +179,16 @@ export default function OrganizationDashboard() {
         const overtimeDiff = clockOutTime.getTime() - scheduledEnd.getTime()
         return acc + overtimeDiff / (1000 * 60 * 60)
       }, 0)
-      const avgOvertime = userClocks.length > 0 ? totalOvertime / userClocks.length : 0
-      return {
-        user,
-        value: avgOvertime,
-        displayValue: `${avgOvertime.toFixed(1)}h`,
-      }
+
+      const avg = userClocks.length > 0 ? totalOvertime / userClocks.length : 0
+      return { user: u, value: avg, displayValue: `${avg.toFixed(1)}h` }
     })
     return userMetrics.sort((a, b) => b.value - a.value)
   }
 
-  // Chart data - daily hours for the organization
+  // =====================
+  // Chart data
+  // =====================
   const chartData = [
     { day: 'Mon', hours: 45.2, employees: 6 },
     { day: 'Tue', hours: 52.8, employees: 7 },
@@ -201,14 +197,106 @@ export default function OrganizationDashboard() {
     { day: 'Fri', hours: 46.9, employees: 6 },
   ]
 
+  // =====================
+  // CSV Export (Excel FR friendly)
+  // =====================
+  const CSV_SEPARATOR = ';'
+  const isoDate = () => new Date().toISOString().slice(0, 10)
+
+  const escapeCsv = (value: any) => {
+    const s = String(value ?? '')
+    if (/[;"\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+    return s
+  }
+
+  const rowsToCsvExcel = (rows: Record<string, any>[]) => {
+    // Excel hint line + BOM for UTF-8 accents
+    if (!rows.length) return '\uFEFF' + `sep=${CSV_SEPARATOR}\n`
+
+    const headers = Object.keys(rows[0])
+    const headerLine = headers.map(escapeCsv).join(CSV_SEPARATOR)
+    const dataLines = rows.map((row) => headers.map((h) => escapeCsv(row[h])).join(CSV_SEPARATOR))
+
+    return '\uFEFF' + `sep=${CSV_SEPARATOR}\n` + [headerLine, ...dataLines].join('\n')
+  }
+
+  const downloadCsvExcel = (filename: string, rows: Record<string, any>[]) => {
+    const csv = rowsToCsvExcel(rows)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+
+    URL.revokeObjectURL(url)
+  }
+
+  const handleExportCsv = () => {
+    const today = isoDate()
+
+    // USERS
+    downloadCsvExcel(
+      `users-${today}.csv`,
+      mockUsers.map((u) => ({
+        id: u.id,
+        first_name: u.first_name,
+        last_name: u.last_name,
+        email: u.email,
+        role: u.role,
+      })),
+    )
+
+    // TEAMS (avec manager_name en bonus)
+    const managerNameById = new Map<number, string>(
+      mockUsers.map((u) => [u.id, `${u.first_name} ${u.last_name}`]),
+    )
+
+    downloadCsvExcel(
+      `teams-${today}.csv`,
+      mockTeams.map((t) => ({
+        id: t.id,
+        name: t.name,
+        description: t.description,
+        manager_id: t.manager_id ?? '',
+        manager_name: t.manager_id ? managerNameById.get(t.manager_id) ?? '' : '',
+        members_count: t.members?.length ?? 0,
+      })),
+    )
+
+    // CLOCKS
+    downloadCsvExcel(
+      `clocks-${today}.csv`,
+      mockClocks.map((c) => ({
+        id: c.id,
+        user_id: c.user_id,
+        clock_in: c.clock_in,
+        clock_out: c.clock_out ?? '',
+      })),
+    )
+
+    // KPI (arrondis plus propres)
+    downloadCsvExcel(`kpi-${today}.csv`, [
+      {
+        totalEmployees: totalUsers,
+        totalTeams: totalTeams,
+        activeClocks: activeClocks,
+        avgHoursPerEmployeeWeek: Number(avgTotalHours.toFixed(1)),
+        avgHoursPerShift: Number(avgWorkTime.toFixed(1)),
+        avgLateTimeMinutes: Number(avgLateTime.toFixed(0)),
+        avgOvertimeHours: Number(avgOvertimeHours.toFixed(1)),
+      },
+    ])
+  }
+
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8 flex items-center justify-between">
         <h2 className="text-white/90 mb-2">Organization Dashboard</h2>
-        <Button
-          onClick={() => setIsExportDialogOpen(true)}
-          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
-        >
+        <Button onClick={handleExportCsv} className="bg-gradient-to-r from-green-500 to-emerald-500 text-white">
           <Download className="w-4 h-4 mr-2" />
           Export as CSV
         </Button>
@@ -224,12 +312,7 @@ export default function OrganizationDashboard() {
           trend={{ value: '5.2%', positive: true }}
         />
         <StatCard title="Teams" value={totalTeams} icon={Building2} description="Departments" />
-        <StatCard
-          title="Active Now"
-          value={activeClocks}
-          icon={TrendingUp}
-          description="Currently clocked in"
-        />
+        <StatCard title="Active Now" value={activeClocks} icon={TrendingUp} description="Currently clocked in" />
         <StatCard
           title="Total Hours This Week"
           value={`${avgTotalHours.toFixed(1)}h`}
@@ -326,11 +409,7 @@ export default function OrganizationDashboard() {
                   <p className="text-sm text-white/60">{totalTeams} total</p>
                 </div>
                 <div className="overflow-y-auto flex-1">
-                  <TeamsTable
-                    teams={mockTeams}
-                    onTeamClick={handleTeamClick}
-                    onEditTeam={handleEditTeam}
-                  />
+                  <TeamsTable teams={mockTeams} onTeamClick={handleTeamClick} onEditTeam={handleEditTeam} />
                 </div>
               </div>
             </TabsContent>
@@ -344,11 +423,7 @@ export default function OrganizationDashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                <XAxis
-                  dataKey="day"
-                  stroke="rgba(255,255,255,0.6)"
-                  tick={{ fill: 'rgba(255,255,255,0.6)' }}
-                />
+                <XAxis dataKey="day" stroke="rgba(255,255,255,0.6)" tick={{ fill: 'rgba(255,255,255,0.6)' }} />
                 <YAxis stroke="rgba(255,255,255,0.6)" tick={{ fill: 'rgba(255,255,255,0.6)' }} />
                 <Tooltip
                   contentStyle={{
@@ -358,11 +433,7 @@ export default function OrganizationDashboard() {
                     color: 'white',
                   }}
                 />
-                <Legend
-                  wrapperStyle={{
-                    color: 'rgba(255,255,255,0.6)',
-                  }}
-                />
+                <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)' }} />
                 <Line
                   type="monotone"
                   dataKey="hours"
@@ -388,21 +459,13 @@ export default function OrganizationDashboard() {
       </div>
 
       {/* Team Detail View */}
-      <TeamDetailView
-        team={selectedTeam}
-        open={isTeamDetailOpen}
-        onOpenChange={setIsTeamDetailOpen}
-      />
+      <TeamDetailView team={selectedTeam} open={isTeamDetailOpen} onOpenChange={setIsTeamDetailOpen} />
 
       {/* Add Team Dialog */}
       <AddTeamDialog open={isAddTeamDialogOpen} onOpenChange={setIsAddTeamDialogOpen} />
 
       {/* Employee Edit Dialog */}
-      <EmployeeEditDialog
-        user={selectedEmployee}
-        open={isEmployeeEditOpen}
-        onOpenChange={setIsEmployeeEditOpen}
-      />
+      <EmployeeEditDialog user={selectedEmployee} open={isEmployeeEditOpen} onOpenChange={setIsEmployeeEditOpen} />
 
       {/* Team Edit Dialog */}
       <TeamEditDialog team={editingTeam} open={isTeamEditOpen} onOpenChange={setIsTeamEditOpen} />
@@ -435,6 +498,7 @@ export default function OrganizationDashboard() {
         metricLabel="avg overtime"
       />
 
+      {/* Tu peux garder ExportDialog, mais il n'est plus utilisé par le bouton en haut */}
       <ExportDialog
         open={isExportDialogOpen}
         onOpenChange={setIsExportDialogOpen}
