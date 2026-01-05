@@ -41,7 +41,7 @@ venv/
 pip-wheel-metadata/
 .eggs/
 *.egg-info/
-dist/
+# dist/
 build/
 # Tests / Qualité
 .pytest_cache/
@@ -60,7 +60,7 @@ htmlcov/
 # dépendances
 node_modules/
 # sorties de build
-frontend/dist/
+# frontend/dist/
 # caches Vite
 .vite/
 vite.config.ts.timestamp-*

@@ -1,99 +1,111 @@
-import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { UserRole } from "../../types";
-import type { Team, UserMinimal } from "../../types";
-import { Save, XCircle, UserPlus, UserMinus } from "lucide-react";
-import { toast } from "sonner";
-import { mockUsers } from "../../lib/mockData";
+import { useState, useEffect } from 'react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { UserRole } from '../../types'
+import type { Team, UserMinimal } from '../../types'
+import { Save, XCircle, UserPlus, UserMinus } from 'lucide-react'
+import { toast } from 'sonner'
+import { mockUsers } from '../../lib/mockData'
 
 interface TeamEditDialogProps {
-  team: Team | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  team: Team | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 export default function TeamEditDialog({ team, open, onOpenChange }: TeamEditDialogProps) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [managerId, setManagerId] = useState<string>("");
-  const [members, setMembers] = useState<UserMinimal[]>([]);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
+  const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
+  const [managerId, setManagerId] = useState<string>('')
+  const [members, setMembers] = useState<UserMinimal[]>([])
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('')
 
   // Get available managers (users with Manager role)
-  const availableManagers = mockUsers.filter(user => user.role === UserRole.MANAGER);
+  const availableManagers = mockUsers.filter((user) => user.role === UserRole.MANAGER)
 
   // Get available employees (EMPLOYEE role and not already in the team)
   const availableEmployees = mockUsers.filter(
-    user => user.role === UserRole.EMPLOYEE && !members.some(member => member.id === user.id)
-  );
+    (user) => user.role === UserRole.EMPLOYEE && !members.some((member) => member.id === user.id),
+  )
 
   useEffect(() => {
     if (team) {
-      setName(team.name);
-      setDescription(team.description);
-      setManagerId(team.manager_id?.toString() || "");
-      setMembers([...team.members]);
+      setName(team.name)
+      setDescription(team.description)
+      setManagerId(team.manager_id?.toString() || '')
+      setMembers([...team.members])
     }
-  }, [team]);
+  }, [team])
 
   const handleAddMember = () => {
     if (!selectedEmployeeId) {
-      toast.error("Please select an employee to add");
-      return;
+      toast.error('Please select an employee to add')
+      return
     }
 
-    const employee = mockUsers.find(u => u.id.toString() === selectedEmployeeId);
+    const employee = mockUsers.find((u) => u.id.toString() === selectedEmployeeId)
     if (employee) {
       const newMember: UserMinimal = {
         id: employee.id,
         first_name: employee.first_name,
         last_name: employee.last_name,
         email: employee.email,
-        role: employee.role
-      };
-      setMembers([...members, newMember]);
-      setSelectedEmployeeId("");
-      toast.success(`${employee.first_name} ${employee.last_name} added to team`);
+        role: employee.role,
+      }
+      setMembers([...members, newMember])
+      setSelectedEmployeeId('')
+      toast.success(`${employee.first_name} ${employee.last_name} added to team`)
     }
-  };
+  }
 
   const handleRemoveMember = (memberId: number) => {
-    const member = members.find(m => m.id === memberId);
-    setMembers(members.filter(m => m.id !== memberId));
+    const member = members.find((m) => m.id === memberId)
+    setMembers(members.filter((m) => m.id !== memberId))
     if (member) {
-      toast.success(`${member.first_name} ${member.last_name} removed from team`);
+      toast.success(`${member.first_name} ${member.last_name} removed from team`)
     }
-  };
+  }
 
   const handleSave = () => {
     // Validation
     if (!name.trim()) {
-      toast.error("Team name is required");
-      return;
+      toast.error('Team name is required')
+      return
     }
 
     if (!description.trim()) {
-      toast.error("Team description is required");
-      return;
+      toast.error('Team description is required')
+      return
     }
 
     // In a real app, this would make an API call
-    toast.success(`Team "${name}" updated successfully!`);
-    onOpenChange(false);
-  };
+    toast.success(`Team "${name}" updated successfully!`)
+    onOpenChange(false)
+  }
 
   const handleCancel = () => {
-    onOpenChange(false);
-  };
+    onOpenChange(false)
+  }
 
-  if (!team) return null;
+  if (!team) return null
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -150,7 +162,11 @@ export default function TeamEditDialog({ team, open, onOpenChange }: TeamEditDia
                     No Manager
                   </SelectItem>
                   {availableManagers.map((manager) => (
-                    <SelectItem key={manager.id} value={manager.id.toString()} className="text-white">
+                    <SelectItem
+                      key={manager.id}
+                      value={manager.id.toString()}
+                      className="text-white"
+                    >
                       {manager.first_name} {manager.last_name}
                     </SelectItem>
                   ))}
@@ -163,7 +179,7 @@ export default function TeamEditDialog({ team, open, onOpenChange }: TeamEditDia
             {/* Team Members Management */}
             <div className="space-y-3">
               <Label className="text-white/80">Team Members ({members.length})</Label>
-              
+
               {/* Add Member Section */}
               <div className="flex gap-2">
                 <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
@@ -177,7 +193,11 @@ export default function TeamEditDialog({ team, open, onOpenChange }: TeamEditDia
                       </SelectItem>
                     ) : (
                       availableEmployees.map((employee) => (
-                        <SelectItem key={employee.id} value={employee.id.toString()} className="text-white">
+                        <SelectItem
+                          key={employee.id}
+                          value={employee.id.toString()}
+                          className="text-white"
+                        >
                           {employee.first_name} {employee.last_name}
                         </SelectItem>
                       ))
@@ -209,7 +229,9 @@ export default function TeamEditDialog({ team, open, onOpenChange }: TeamEditDia
                         className="flex items-center justify-between p-3 backdrop-blur-xl bg-white/5 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
                       >
                         <div>
-                          <p className="text-white/90">{member.first_name} {member.last_name}</p>
+                          <p className="text-white/90">
+                            {member.first_name} {member.last_name}
+                          </p>
                           <p className="text-white/60 text-sm">{member.email}</p>
                         </div>
                         <Button
@@ -252,5 +274,5 @@ export default function TeamEditDialog({ team, open, onOpenChange }: TeamEditDia
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
