@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/select'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-// import type { Team, UserRole, UserMinimal } from "../../types";
 import { UserRole } from '../../types'
 import type { Team, UserMinimal } from '../../types'
 import { Save, XCircle, UserPlus, UserMinus } from 'lucide-react'
