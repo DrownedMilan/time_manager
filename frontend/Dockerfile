@@ -7,8 +7,8 @@ WORKDIR /app
 # Enable corepack (uses built-in Yarn from Node)
 RUN corepack enable
 
-# Copy package files
-COPY package.json yarn.lock ./
+# Copy package files (include Yarn config to keep nodeLinker settings)
+COPY package.json yarn.lock .yarnrc.yml ./
 
 # Install dependencies
 RUN yarn install --immutable
