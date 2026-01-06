@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { api } from '@/lib/api'
 import StatCard from '../../components/common/StatCard'
 import UsersTable from '../../components/UsersTable'
 import TeamsTable from '../teams/TeamsTable'
@@ -28,6 +29,35 @@ import { useUser } from '@/hooks/useUser'
 
 export default function OrganizationDashboard() {
   const { user } = useUser()
+
+  useEffect(() => {
+  // USERS
+  api.users()
+    .then((data) => {
+      console.log('✅ USERS API:', data)
+    })
+    .catch((err) => {
+      console.error('❌ USERS API error:', err)
+    })
+
+  // TEAMS
+  api.teams()
+    .then((data) => {
+      console.log('✅ TEAMS API:', data)
+    })
+    .catch((err) => {
+      console.error('❌ TEAMS API error:', err)
+    })
+
+  // CLOCKS
+  api.clocks()
+    .then((data) => {
+      console.log('✅ CLOCKS API:', data)
+    })
+    .catch((err) => {
+      console.error('❌ CLOCKS API error:', err)
+    })
+}, [])
 
   if (!user) return <div>Loading...</div>
 

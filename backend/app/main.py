@@ -1,10 +1,12 @@
 from fastapi import FastAPI
 from sqlmodel import SQLModel
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.openapi.utils import get_openapi
+
 
 from app.database import engine
 from app.admin_panel import setup_admin
-from app.routers import users, clocks, teams
+from app.routers import users, clocks, teams, kpi
 # from app.routers import auth_routes
 
 
@@ -15,13 +17,28 @@ app = FastAPI(
     redirect_slashes=False,
 )
 
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    schema["servers"] = [{"url": "/api"}]
+    app.openapi_schema = schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
+
 
 # ==============================
 #             CORS
 # ==============================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # à restreindre en prod
+    allow_origins=["http://localhost:4000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,6 +67,7 @@ async def root():
 app.include_router(users.router)
 app.include_router(clocks.router)
 app.include_router(teams.router)
+app.include_router(kpi.router)
 # app.include_router(auth_routes.router)
 
 
