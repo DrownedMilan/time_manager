@@ -4,13 +4,13 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Enable corepack for Yarn 4
+# Enable corepack (uses built-in Yarn from Node)
 RUN corepack enable
 
-# Copy package files and Yarn config
-COPY package.json yarn.lock .yarnrc.yml ./
+# Copy package files
+COPY package.json yarn.lock ./
 
-# Install dependencies (--immutable is Yarn 4's equivalent of --frozen-lockfile)
+# Install dependencies
 RUN yarn install --immutable
 
 # Copy the rest of the frontend

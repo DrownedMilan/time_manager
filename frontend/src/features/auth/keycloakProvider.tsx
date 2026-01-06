@@ -6,7 +6,7 @@ import { AuthContext } from './AuthContext'
 import { UserContext } from '@/hooks/useUserContext'
 
 import { api } from '@/services/api'
-import type { User } from '@/types'
+import type { User } from '@/types/user'
 
 import { logout } from './logout'
 

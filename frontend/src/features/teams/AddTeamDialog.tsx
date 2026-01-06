@@ -1,81 +1,85 @@
-import { useState } from "react";
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { mockUsers } from "../../lib/mockData";
-import { UserRole } from "../../types";
-import { toast } from "sonner";
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Checkbox } from '@/components/ui/checkbox'
+import { mockUsers } from '../../lib/mockData'
+import { UserRole } from '@/types/user'
+import { toast } from 'sonner'
 
 interface AddTeamDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 export default function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps) {
-  const [teamName, setTeamName] = useState("");
-  const [description, setDescription] = useState("");
-  const [selectedManagerId, setSelectedManagerId] = useState<string>("");
-  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<number[]>([]);
+  const [teamName, setTeamName] = useState('')
+  const [description, setDescription] = useState('')
+  const [selectedManagerId, setSelectedManagerId] = useState<string>('')
+  const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<number[]>([])
 
   // Get available managers (managers without a team)
   const availableManagers = mockUsers.filter(
-    user => user.role === UserRole.MANAGER && !user.managed_team
-  );
+    (user) => user.role === UserRole.MANAGER && !user.managed_team,
+  )
 
   // Get unassigned employees (employees without a team)
   const unassignedEmployees = mockUsers.filter(
-    user => user.role === UserRole.EMPLOYEE && !user.team
-  );
+    (user) => user.role === UserRole.EMPLOYEE && !user.team,
+  )
 
   const handleEmployeeToggle = (employeeId: number) => {
-    setSelectedEmployeeIds(prev =>
-      prev.includes(employeeId)
-        ? prev.filter(id => id !== employeeId)
-        : [...prev, employeeId]
-    );
-  };
+    setSelectedEmployeeIds((prev) =>
+      prev.includes(employeeId) ? prev.filter((id) => id !== employeeId) : [...prev, employeeId],
+    )
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     if (!teamName.trim()) {
-      toast.error("Team name is required");
-      return;
+      toast.error('Team name is required')
+      return
     }
 
     if (!selectedManagerId) {
-      toast.error("Please select a manager");
-      return;
+      toast.error('Please select a manager')
+      return
     }
 
     // In a real app, this would make an API call
-    toast.success(`Team "${teamName}" created successfully!`);
-    
+    toast.success(`Team "${teamName}" created successfully!`)
+
     // Reset form and close dialog
-    setTeamName("");
-    setDescription("");
-    setSelectedManagerId("");
-    setSelectedEmployeeIds([]);
-    onOpenChange(false);
-  };
+    setTeamName('')
+    setDescription('')
+    setSelectedManagerId('')
+    setSelectedEmployeeIds([])
+    onOpenChange(false)
+  }
 
   const handleCancel = () => {
-    setTeamName("");
-    setDescription("");
-    setSelectedManagerId("");
-    setSelectedEmployeeIds([]);
-    onOpenChange(false);
-  };
+    setTeamName('')
+    setDescription('')
+    setSelectedManagerId('')
+    setSelectedEmployeeIds([])
+    onOpenChange(false)
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -129,8 +133,8 @@ export default function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900 border-white/20">
                   {availableManagers.map((manager) => (
-                    <SelectItem 
-                      key={manager.id} 
+                    <SelectItem
+                      key={manager.id}
                       value={manager.id.toString()}
                       className="text-white"
                     >
@@ -148,9 +152,7 @@ export default function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps
 
           {/* Employee Selection */}
           <div className="space-y-2">
-            <Label className="text-white/90">
-              Team Members
-            </Label>
+            <Label className="text-white/90">Team Members</Label>
             {unassignedEmployees.length > 0 ? (
               <div className="space-y-2 max-h-60 overflow-y-auto bg-white/5 rounded-lg border border-white/10 p-4">
                 {unassignedEmployees.map((employee) => (
@@ -178,7 +180,8 @@ export default function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps
             )}
             {selectedEmployeeIds.length > 0 && (
               <p className="text-sm text-white/60">
-                {selectedEmployeeIds.length} employee{selectedEmployeeIds.length > 1 ? 's' : ''} selected
+                {selectedEmployeeIds.length} employee{selectedEmployeeIds.length > 1 ? 's' : ''}{' '}
+                selected
               </p>
             )}
           </div>
@@ -203,5 +206,5 @@ export default function AddTeamDialog({ open, onOpenChange }: AddTeamDialogProps
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

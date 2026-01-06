@@ -11,7 +11,8 @@ import ExportDialog from '../../components/common/ExportDialog'
 import { Users, Building2, Clock, TrendingUp, Plus, Timer, Award, Download } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import { Button } from '../../components/ui/button'
-import type { User, Team } from '../../types'
+import type { User } from '@/types/user'
+import type { Team } from '@/types/team'
 import { mockUsers, mockTeams, mockClocks } from '../../lib/mockData'
 import {
   LineChart,

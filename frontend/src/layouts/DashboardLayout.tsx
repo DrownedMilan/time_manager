@@ -5,7 +5,7 @@ import PasswordChangeDialog from '@/features/auth/PasswordChangeDialog'
 import EmployeeEditDialog from '@/features/employees/EmployeeEditDialog'
 import logo from '/primebank_logo.png'
 import { useUser } from '@/hooks/useUser'
-import { UserRole } from '@/types'
+import { UserRole } from '@/types/user'
 import { useAuth } from '@/hooks/useAuth'
 
 interface DashboardLayoutProps {

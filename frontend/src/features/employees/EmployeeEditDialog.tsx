@@ -16,14 +16,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../components/ui/select'
-import { type User, UserRole } from '../../types'
+import { type User, UserRole } from '@/types/user'
 import { Save, XCircle, Copy, CheckCheck } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface EmployeeEditDialogProps {
-  user?: User | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  user?: User | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
 export default function EmployeeEditDialog({ user, open, onOpenChange }: EmployeeEditDialogProps) {
@@ -99,7 +99,7 @@ export default function EmployeeEditDialog({ user, open, onOpenChange }: Employe
       setPasswordCopied(true)
       toast.success('Password copied to clipboard!')
       setTimeout(() => setPasswordCopied(false), 2000)
-    } catch (error) {
+    } catch (error: unknown) {
       toast.error('Failed to copy password')
     }
   }

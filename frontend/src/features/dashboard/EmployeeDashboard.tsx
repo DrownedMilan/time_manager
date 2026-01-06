@@ -1,32 +1,50 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import StatCard from '@/components/common/StatCard'
 import ClockWidget from '@/components/common/ClockWidget'
-// import ClockRecordsTable from "@/components/ClockRecordsTable";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Clock, User as UserIcon, Calendar, ClockAlert, Mail, Phone } from 'lucide-react'
-import { type Clock as ClockType } from '@/types'
+import { type Clock as ClockType } from '@/types/clock'
 import { mockClocks, mockUsers } from '../../lib/mockData'
 import { useUser } from '@/hooks/useUser'
+import { useUserClocks } from '@/hooks/useUserClocks'
+import { useAuth } from '@/hooks/useAuth'
+import { api } from '@/lib/api'
 
 export default function EmployeeDashboard() {
   const { user } = useUser()
+  const { keycloak } = useAuth()
+  const token = keycloak?.token ?? null
 
-  const [clocks, setClocks] = useState<ClockType[]>([])
-  const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false)
+  // const [clocks, setClocks] = useState<ClockType[]>([])
 
   // Load clocks when user becomes available
-  useEffect(() => {
-    if (user) {
-      setClocks(mockClocks.filter((c) => c.user_id === user.id))
-    }
-  }, [user])
+  // useEffect(() => {
+  //   if (user) {
+  //     setClocks(mockClocks.filter((c) => c.user_id === user.id))
+  //   }
+  // }, [user])
+
+  // Fetch real clocks from API
+  const {
+    data: clocks,
+    isLoading: clocksLoading,
+    refetch: refetchClocks,
+  } = useUserClocks(user?.id ?? null, token)
+
+  const [isTeamDialogOpen, setIsTeamDialogOpen] = useState(false)
 
   if (!user) {
     return <div>Loading...</div>
   }
 
-  const currentClock = clocks.find((c) => !c.clock_out) || null
-  const completedClocks = clocks.filter((c) => c.clock_out)
+  if (clocksLoading) {
+    return <div>Loading clocks...</div>
+  }
+
+  const clocksList = clocks ?? []
+  console.log('clocks list:', clocksList)
+  const currentClock = clocksList.find((c) => !c.clock_out) || null
+  const completedClocks = clocksList.filter((c) => c.clock_out)
   const totalHoursThisWeek = completedClocks.reduce((acc, clock) => {
     if (clock.clock_out) {
       const diff = new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()
@@ -39,7 +57,7 @@ export default function EmployeeDashboard() {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
-  const recentClocks = clocks.filter((c) => new Date(c.clock_in) >= thirtyDaysAgo)
+  const recentClocks = clocksList.filter((c) => new Date(c.clock_in) >= thirtyDaysAgo)
 
   const lateMinutes = recentClocks.map((clock) => {
     const clockInDate = new Date(clock.clock_in)
@@ -74,7 +92,7 @@ export default function EmployeeDashboard() {
 
   // Calculate days worked this month
   const firstDayOfMonth = new Date(year, month, 1)
-  const clocksThisMonth = clocks.filter((c) => {
+  const clocksThisMonth = clocksList.filter((c) => {
     const clockDate = new Date(c.clock_in)
     return clockDate >= firstDayOfMonth && c.clock_out
   })
@@ -83,36 +101,33 @@ export default function EmployeeDashboard() {
   const daysWorkedSet = new Set(clocksThisMonth.map((c) => new Date(c.clock_in).toDateString()))
   const daysWorked = daysWorkedSet.size
 
-  const handleClockIn = () => {
-    const newClock: ClockType = {
-      id: Date.now(),
-      user_id: user.id,
-      clock_in: new Date().toISOString(),
-      clock_out: null,
-      created_at: new Date().toISOString(),
-      user: {
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        role: user.role,
-      },
+  const handleClockIn = async () => {
+    try {
+      await api<ClockType>('/clocks/', {
+        method: 'POST',
+        body: { user_id: user.id },
+        authToken: token,
+      })
+      refetchClocks()
+    } catch (err) {
+      console.error('Failed to clock in:', err)
     }
-    setClocks([newClock, ...clocks])
   }
 
-  const handleClockOut = () => {
-    setClocks(
-      clocks.map((c) =>
-        c.id === currentClock?.id && !c.clock_out
-          ? { ...c, clock_out: new Date().toISOString() }
-          : c,
-      ),
-    )
+  const handleClockOut = async () => {
+    try {
+      await api<ClockType>('/clocks/', {
+        method: 'POST',
+        body: { user_id: user.id },
+        authToken: token,
+      })
+      refetchClocks()
+    } catch (err) {
+      console.error('Failed to clock out:', err)
+    }
   }
 
-  console.log("created_at raw:", user.created_at)
-
+  console.log('created_at raw:', user.created_at)
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8">
@@ -217,13 +232,13 @@ export default function EmployeeDashboard() {
             </h3>
             <div className="overflow-y-auto flex-1 min-h-0">
               <div className="p-4 space-y-3">
-                {clocks.length === 0 ? (
+                {clocksList.length === 0 ? (
                   <div className="text-center py-8">
                     <Clock className="w-8 h-8 text-white/30 mx-auto mb-2" />
                     <p className="text-white/50 text-xs">No records found</p>
                   </div>
                 ) : (
-                  clocks.slice(0, 5).map((clock) => {
+                  clocksList.slice(0, 5).map((clock) => {
                     const duration = clock.clock_out
                       ? (() => {
                           const diff =
@@ -302,75 +317,79 @@ export default function EmployeeDashboard() {
           </DialogHeader>
           {user.team && user.team.members && (
             <div className="space-y-3 max-h-[500px] overflow-y-auto">
-              {user.team.members.map((member) => {
-                // Get full user data for phone number
-                const fullUser = mockUsers.find((u) => u.id === member.id)
+              {user.team.members.map(
+                (member: { id: number; first_name: string; last_name: string; email: string }) => {
+                  // Get full user data for phone number
+                  const fullUser = mockUsers.find((u) => u.id === member.id)
 
-                // Check if member is currently clocked in
-                const activeClock = mockClocks.find((c) => c.user_id === member.id && !c.clock_out)
-                const isActive = !!activeClock
+                  // Check if member is currently clocked in
+                  const activeClock = mockClocks.find(
+                    (c) => c.user_id === member.id && !c.clock_out,
+                  )
+                  const isActive = !!activeClock
 
-                return (
-                  <div
-                    key={member.id}
-                    className="group relative backdrop-blur-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-xl p-5 hover:from-white/15 hover:to-white/10 hover:border-white/30 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
-                  >
-                    {/* Decorative gradient overlay */}
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/10 to-cyan-400/10 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
+                  return (
+                    <div
+                      key={member.id}
+                      className="group relative backdrop-blur-xl bg-gradient-to-br from-white/10 to-white/5 border border-white/20 rounded-xl p-5 hover:from-white/15 hover:to-white/10 hover:border-white/30 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10"
+                    >
+                      {/* Decorative gradient overlay */}
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-400/10 to-cyan-400/10 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10" />
 
-                    <div className="flex items-start gap-4">
-                      {/* Avatar */}
-                      <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
-                        <span className="text-white">
-                          {member.first_name.charAt(0)}
-                          {member.last_name.charAt(0)}
-                        </span>
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between mb-3">
-                          <div>
-                            <h4 className="text-white mb-1">
-                              {member.first_name} {member.last_name}
-                            </h4>
-                            <span
-                              className={`inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full backdrop-blur-sm ${
-                                isActive
-                                  ? 'bg-green-500/20 text-green-300 border border-green-400/40 shadow-sm shadow-green-500/20'
-                                  : 'bg-slate-500/20 text-slate-300 border border-slate-400/40'
-                              }`}
-                            >
-                              <div
-                                className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-400 animate-pulse' : 'bg-slate-400'}`}
-                              />
-                              {isActive ? 'Active Now' : 'Offline'}
-                            </span>
-                          </div>
+                      <div className="flex items-start gap-4">
+                        {/* Avatar */}
+                        <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20">
+                          <span className="text-white">
+                            {member.first_name.charAt(0)}
+                            {member.last_name.charAt(0)}
+                          </span>
                         </div>
 
-                        {/* Contact Info */}
-                        <div className="space-y-2.5">
-                          <div className="flex items-center gap-3 group/item">
-                            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover/item:bg-white/10 transition-colors">
-                              <Mail className="w-4 h-4 text-blue-300" />
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between mb-3">
+                            <div>
+                              <h4 className="text-white mb-1">
+                                {member.first_name} {member.last_name}
+                              </h4>
+                              <span
+                                className={`inline-flex items-center gap-1.5 text-xs px-3 py-1 rounded-full backdrop-blur-sm ${
+                                  isActive
+                                    ? 'bg-green-500/20 text-green-300 border border-green-400/40 shadow-sm shadow-green-500/20'
+                                    : 'bg-slate-500/20 text-slate-300 border border-slate-400/40'
+                                }`}
+                              >
+                                <div
+                                  className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-400 animate-pulse' : 'bg-slate-400'}`}
+                                />
+                                {isActive ? 'Active Now' : 'Offline'}
+                              </span>
                             </div>
-                            <span className="text-white/80 text-sm">{member.email}</span>
                           </div>
-                          <div className="flex items-center gap-3 group/item">
-                            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover/item:bg-white/10 transition-colors">
-                              <Phone className="w-4 h-4 text-cyan-300" />
+
+                          {/* Contact Info */}
+                          <div className="space-y-2.5">
+                            <div className="flex items-center gap-3 group/item">
+                              <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover/item:bg-white/10 transition-colors">
+                                <Mail className="w-4 h-4 text-blue-300" />
+                              </div>
+                              <span className="text-white/80 text-sm">{member.email}</span>
                             </div>
-                            <span className="text-white/80 text-sm">
-                              {fullUser?.phone_number || 'N/A'}
-                            </span>
+                            <div className="flex items-center gap-3 group/item">
+                              <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover/item:bg-white/10 transition-colors">
+                                <Phone className="w-4 h-4 text-cyan-300" />
+                              </div>
+                              <span className="text-white/80 text-sm">
+                                {fullUser?.phone_number || 'N/A'}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                },
+              )}
             </div>
           )}
         </DialogContent>

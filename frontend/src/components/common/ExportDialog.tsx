@@ -12,7 +12,7 @@ import { Checkbox } from '../../components/ui/checkbox'
 import { Label } from '../../components/ui/label'
 import { Download, FileSpreadsheet } from 'lucide-react'
 import { mockUsers, mockTeams, mockClocks } from '../../lib/mockData'
-import type { UserRole } from '../../types'
+import { UserRole } from '@/types/user'
 
 interface ExportDialogProps {
   open: boolean
