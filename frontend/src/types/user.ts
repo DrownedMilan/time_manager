@@ -22,20 +22,19 @@ export interface User {
   first_name: string
   last_name: string
   email: string
-  phone_number: string
+  phone_number: string | null
   role: UserRole
   created_at: string
-  clocks: Clock[]
-  managed_team: Team | null
-  team: Team | null
+  team: TeamMinimal | null
 }
+
 
 export interface UserMinimal {
   id: number
   first_name: string
   last_name: string
   email: string
-  phone_number: string
+  phone_number: string | null
   role: UserRole
 }
 

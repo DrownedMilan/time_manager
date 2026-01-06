@@ -10,6 +10,12 @@ export interface Team {
   members: UserMinimal[]
 }
 
+export interface TeamMinimal {
+  id: number
+  name: string
+  manager: import('./user').UserMinimal | null
+}
+
 export interface TeamCreatePayload {
   name: string
   description: string

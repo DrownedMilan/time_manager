@@ -177,16 +177,8 @@ class UserMinimal(SQLModel):
 	first_name: str
 	last_name: str
 	email: EmailStr
-	phone_number: str
+	phone_number: Optional[str] = None
 
-
-class UserMe(SQLModel):
-    id: int
-    email: EmailStr
-    first_name: str
-    last_name: str
-    role: str
-    created_at: datetime
 
 class UserCreate(SQLModel):
     first_name: str
@@ -217,7 +209,7 @@ class ClockPublic(SQLModel):
 class TeamMinimal(SQLModel):
     id: int
     name: str
-    manager: Optional[UserMinimal]
+    manager: Optional[UserMinimal] = None
 
 
 class TeamPublic(SQLModel):
@@ -240,3 +232,14 @@ class TeamUpdate(SQLModel):
     name: Optional[str] = None
     description: Optional[str] = None
     manager_id: Optional[int] = None
+
+
+class UserMe(SQLModel):
+    id: int
+    email: EmailStr
+    first_name: str
+    last_name: str
+    phone_number: Optional[str] = None
+    role: str
+    created_at: datetime
+    team: Optional[TeamMinimal] = None
