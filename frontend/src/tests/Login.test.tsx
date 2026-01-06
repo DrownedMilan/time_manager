@@ -46,7 +46,7 @@ describe('LoginPage', () => {
       logout,
     })
 
-    await user.click(screen.getByRole('button', { name: /connecter/i }))
+    await user.click(screen.getByRole('button', { name: /se d.*connecter/i }))
     expect(logout).toHaveBeenCalled()
   })
 })
