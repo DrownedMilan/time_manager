@@ -37,7 +37,7 @@ export default function EmployeeDashboard() {
     return <div>Loading...</div>
   }
 
-  if (clocksLoading) {
+  if (clocksLoading && clocks === null) {
     return <div>Loading clocks...</div>
   }
 
