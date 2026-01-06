@@ -1,24 +1,24 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getClockById } from '@/services/clockService'
-import type { Clock } from '../types/clock'
+import { getTeamById } from '@/services/teamService'
+import type { Team } from '../types/team'
 
-interface UseClockResult {
-  data: Clock | null
+interface UseTeamResult {
+  data: Team | null
   isLoading: boolean
   isError: boolean
   error: unknown
   refetch: () => void
 }
 
-export function useClock(clockId: number | null, authToken?: string | null): UseClockResult {
-  const [data, setData] = useState<Clock | null>(null)
+export function useTeam(teamId: number | null, authToken?: string | null): UseTeamResult {
+  const [data, setData] = useState<Team | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isError, setIsError] = useState<boolean>(false)
   const [error, setError] = useState<unknown>(null)
 
   // simple version; re-run when teamId or authToken changes
   const load = useCallback(async () => {
-    if (clockId == null) {
+    if (teamId == null) {
       setData(null)
       setIsLoading(true)
       setIsError(false)
@@ -31,7 +31,7 @@ export function useClock(clockId: number | null, authToken?: string | null): Use
     setError(null)
 
     try {
-      const team = await getClockById(clockId, authToken)
+      const team = await getTeamById(teamId, authToken)
       setData(team)
     } catch (err) {
       console.error('Failed to fetch team:', err)
@@ -41,7 +41,7 @@ export function useClock(clockId: number | null, authToken?: string | null): Use
     } finally {
       setIsLoading(false)
     }
-  }, [clockId, authToken])
+  }, [teamId, authToken])
 
   useEffect(() => {
     load()

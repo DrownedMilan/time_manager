@@ -3,15 +3,23 @@ from sqlmodel import Session, select
 from app.database import get_session
 from app.auth import get_current_user
 from app.models import (
-    User, UserCreate, UserPublic, UserUpdate,
+    User, UserMinimal, TeamMinimal, UserCreate, UserPublic, UserUpdate,
     Clock, ClockPublic, UserMe
 )
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 @router.get("/me", response_model=UserMe)
-def get_me(user: UserPublic = Depends(get_current_user)):
-    roles = [r.lower() for r in user.realm_roles]
+def get_me(
+    user: User = Depends(get_current_user),
+    session: Session = Depends(get_session)
+):
+    # Fetch the full user with team relationship from DB
+    db_user = session.get(User, user.id)
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    roles = [r.lower() for r in db_user.realm_roles]
 
     if "organization" in roles:
         role = "organization"
@@ -20,15 +28,34 @@ def get_me(user: UserPublic = Depends(get_current_user)):
     else:
         role = "employee"
 
-    return UserMe(
-        id=user.id,
-        email=user.email,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        role=role,
-        created_at=user.created_at
-    )
+    # Build team info if user has a team
+    team_info = None
+    if db_user.team:
+        manager_info = None
+        if db_user.team.manager:
+            manager_info = UserMinimal(
+                id=db_user.team.manager.id,
+                first_name=db_user.team.manager.first_name,
+                last_name=db_user.team.manager.last_name,
+                email=db_user.team.manager.email,
+                phone_number=db_user.team.manager.phone_number
+            )
+        team_info = TeamMinimal(
+            id=db_user.team.id,
+            name=db_user.team.name,
+            manager=manager_info
+        )
 
+    return UserMe(
+        id=db_user.id,
+        email=db_user.email,
+        first_name=db_user.first_name,
+        last_name=db_user.last_name,
+        phone_number=db_user.phone_number,
+        role=role,
+        created_at=db_user.created_at,
+        team=team_info
+    )
 
 # Create User
 @router.post("/", response_model=UserPublic)
