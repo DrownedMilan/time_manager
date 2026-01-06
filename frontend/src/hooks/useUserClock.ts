@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import type { User } from '../types/user'
 import type { Clock } from '@/types/clock'
 import { api } from '@/services/api'
-import { getUserClocks, toggleClock } from '@/services/clocks'
+import { getUserClocks, createClockInOut } from '../services/clockService'
 
 export const useUser = (userId: number) => {
   const [user, setUser] = useState<User | null>(null)
@@ -31,7 +31,7 @@ export const useUser = (userId: number) => {
   const handleClockToggle = useCallback(async () => {
     setProcessing(true)
     try {
-      const res = await toggleClock(userId)
+      const res = await createClockInOut(userId)
       const updatedClocks = await getUserClocks(userId)
       setClocks(updatedClocks)
       setIsClockedIn(res.clock_out === null)

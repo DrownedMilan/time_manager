@@ -1,13 +1,13 @@
-import { createContext } from "react";
-import Keycloak from "keycloak-js";
-import type { AuthUser } from "@/types";
+import { createContext } from 'react'
+import Keycloak from 'keycloak-js'
+import type { AuthUser } from '@/types/user'
 
 export interface AuthContextType {
-  keycloak: Keycloak;
-  authenticated: boolean;
-  initialized: boolean;
-  logout: () => void;
-  user: AuthUser | null;
+  keycloak: Keycloak
+  authenticated: boolean
+  initialized: boolean
+  logout: () => void
+  user: AuthUser | null
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -16,4 +16,4 @@ export const AuthContext = createContext<AuthContextType>({
   initialized: false,
   logout: () => {},
   user: null,
-});
+})
