@@ -2,6 +2,15 @@ import { api } from '@/lib/api'
 import type { User, UserUpdatePayload } from '@/types/user'
 import type { Clock } from '@/types/clock'
 
+export interface UserCreatePayload {
+  first_name: string
+  last_name: string
+  email: string
+  phone_number: string
+  keycloak_id?: string
+  realm_roles?: string[]
+}
+
 /**
  * GET /users
  * Return all users
@@ -25,6 +34,21 @@ export async function getUserById(userId: number, authToken?: string | null) {
 }
 
 /**
+ * POST /users
+ * Create a new user
+ */
+export async function createUser(
+  payload: UserCreatePayload,
+  authToken?: string | null,
+) {
+  return api<User>(`/users/`, {
+    method: 'POST',
+    body: payload,
+    authToken,
+  })
+}
+
+/**
  * PUT /users/:id
  * Update a user
  */
@@ -33,14 +57,11 @@ export async function updateUser(
   payload: UserUpdatePayload,
   authToken?: string | null,
 ) {
-  return (
-    api<User>(`/users/${userId}`),
-    {
-      method: 'PUT',
-      body: payload,
-      authToken,
-    }
-  )
+  return api<User>(`/users/${userId}`, {
+    method: 'PUT',
+    body: payload,
+    authToken,
+  })
 }
 
 /**
