@@ -3,21 +3,24 @@
 # ----------------------------------------------------
 FROM node:20-alpine AS build
 WORKDIR /app
-
+    
 # Enable corepack (uses built-in Yarn from Node)
 RUN corepack enable
-
+    
 # Copy package files (include Yarn config before install)
 COPY package.json yarn.lock .yarnrc.yml ./
-
-# Copy the rest of the frontend
+    
+# Install dependencies at build time
+RUN yarn install --immutable
+    
+#Copy the rest of the frontend
 COPY . .
-
+    
 # Copy and set up entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
+    
 ENTRYPOINT ["docker-entrypoint.sh"]
-
+    
 # Start the Vite dev server
 CMD ["yarn", "dev", "--host", "0.0.0.0"]
