@@ -7,8 +7,8 @@ WORKDIR /app
 # Enable corepack (uses built-in Yarn from Node)
 RUN corepack enable
 
-# Copy package files (dependencies will be installed in container via entrypoint)
-COPY package.json yarn.lock ./
+# Copy package files (include Yarn config before install)
+COPY package.json yarn.lock .yarnrc.yml ./
 
 # Copy the rest of the frontend
 COPY . .
