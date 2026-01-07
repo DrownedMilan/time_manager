@@ -78,7 +78,7 @@ vite.config.js.timestamp-*
 # !.yarn/cache
 # Fichiers Yarn
 .pnp.*
-.yarnrc.yml
+# .yarnrc.yml - Keep this file versioned for node-modules compatibility
 
 # =========================
 # Nginx
