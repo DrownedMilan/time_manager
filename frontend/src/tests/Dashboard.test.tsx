@@ -121,7 +121,7 @@ const renderWithUser = (node: React.ReactNode, user = mockUsers[2]) =>
 
 describe('Dashboard pages', () => {
   it('renders employee dashboard with user data', async () => {
-    const employee = mockUsers.find((u) => u.role === 'employee')!
+    const employee = mockUsers.find((u) => u.role === 'Employee')!
 
     renderWithUser(<EmployeeDashboard />, employee)
 
@@ -134,7 +134,7 @@ describe('Dashboard pages', () => {
   })
 
   it('renders manager dashboard with team information', () => {
-    const manager = mockUsers.find((u) => u.role === 'manager')!
+    const manager = mockUsers.find((u) => u.role === 'Manager')!
 
     renderWithUser(<ManagerDashboard />, manager)
 
@@ -146,7 +146,7 @@ describe('Dashboard pages', () => {
   })
 
   it('renders organization dashboard overview', () => {
-    const orgUser = mockUsers.find((u) => u.role === 'organization')!
+    const orgUser = mockUsers.find((u) => u.role === 'Organization')!
 
     renderWithUser(<OrganizationDashboard />, orgUser)
 

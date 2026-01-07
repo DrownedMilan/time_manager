@@ -1,5 +1,5 @@
-import { useEffect, useState, useEffect, useCallback } from 'react'
-import { api } from '@/lib/api'
+import { useEffect, useState, useCallback } from 'react'
+import { adrienApi } from '@/lib/adrienApi'
 import StatCard from '../../components/common/StatCard'
 import UsersTable from '../../components/UsersTable'
 import TeamsTable from '../teams/TeamsTable'
@@ -9,7 +9,17 @@ import EmployeeEditDialog from '../employees/EmployeeEditDialog'
 import TeamEditDialog from '../teams/TeamEditDialog'
 import EmployeeRankingDialog from '../employees/EmployeeRankingDialog'
 import ExportDialog from '../../components/common/ExportDialog'
-import { Users, Building2, Clock, TrendingUp, Plus, Timer, Award, Download, Loader2 } from 'lucide-react'
+import {
+  Users,
+  Building2,
+  Clock,
+  TrendingUp,
+  Plus,
+  Timer,
+  Award,
+  Download,
+  Loader2,
+} from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
 import { Button } from '../../components/ui/button'
 import type { User } from '@/types/user'
@@ -37,33 +47,36 @@ export default function OrganizationDashboard() {
   const { user } = useUser()
 
   useEffect(() => {
-  // USERS
-  api.users()
-    .then((data) => {
-      console.log('✅ USERS API:', data)
-    })
-    .catch((err) => {
-      console.error('❌ USERS API error:', err)
-    })
+    // USERS
+    adrienApi
+      .users()
+      .then((data) => {
+        console.log('✅ USERS API:', data)
+      })
+      .catch((err) => {
+        console.error('❌ USERS API error:', err)
+      })
 
-  // TEAMS
-  api.teams()
-    .then((data) => {
-      console.log('✅ TEAMS API:', data)
-    })
-    .catch((err) => {
-      console.error('❌ TEAMS API error:', err)
-    })
+    // TEAMS
+    adrienApi
+      .teams()
+      .then((data) => {
+        console.log('✅ TEAMS API:', data)
+      })
+      .catch((err) => {
+        console.error('❌ TEAMS API error:', err)
+      })
 
-  // CLOCKS
-  api.clocks()
-    .then((data) => {
-      console.log('✅ CLOCKS API:', data)
-    })
-    .catch((err) => {
-      console.error('❌ CLOCKS API error:', err)
-    })
-}, [])
+    // CLOCKS
+    adrienApi
+      .clocks()
+      .then((data) => {
+        console.log('✅ CLOCKS API:', data)
+      })
+      .catch((err) => {
+        console.error('❌ CLOCKS API error:', err)
+      })
+  }, [])
   const { keycloak } = useAuth()
   const token = keycloak?.token ?? null
 
@@ -89,7 +102,7 @@ export default function OrganizationDashboard() {
   // Fetch all data from APIs
   const fetchData = useCallback(async () => {
     if (!token) return
-    
+
     setIsLoading(true)
     try {
       const [fetchedUsers, fetchedTeams, fetchedClocks] = await Promise.all([
@@ -286,7 +299,7 @@ export default function OrganizationDashboard() {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
     const now = new Date()
     const currentDayOfWeek = now.getDay() // 0 = Sunday, 1 = Monday, etc.
-    
+
     // Get the start of the current week (Monday)
     const startOfWeek = new Date(now)
     startOfWeek.setDate(now.getDate() - (currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1))
@@ -295,7 +308,7 @@ export default function OrganizationDashboard() {
     return days.map((day, index) => {
       const dayDate = new Date(startOfWeek)
       dayDate.setDate(startOfWeek.getDate() + index)
-      
+
       const dayClocks = clocks.filter((c) => {
         const clockDate = new Date(c.clock_in)
         return clockDate.toDateString() === dayDate.toDateString()
@@ -607,8 +620,8 @@ export default function OrganizationDashboard() {
       />
 
       {/* Add Team Dialog */}
-      <AddTeamDialog 
-        open={isAddTeamDialogOpen} 
+      <AddTeamDialog
+        open={isAddTeamDialogOpen}
         onOpenChange={setIsAddTeamDialogOpen}
         onTeamCreated={fetchData}
       />
@@ -623,11 +636,7 @@ export default function OrganizationDashboard() {
       />
 
       {/* Team Edit Dialog */}
-      <TeamEditDialog 
-        team={editingTeam} 
-        open={isTeamEditOpen} 
-        onOpenChange={setIsTeamEditOpen}
-      />
+      <TeamEditDialog team={editingTeam} open={isTeamEditOpen} onOpenChange={setIsTeamEditOpen} />
 
       {/* Employee Ranking Dialogs */}
       <EmployeeRankingDialog
