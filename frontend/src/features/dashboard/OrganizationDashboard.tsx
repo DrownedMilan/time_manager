@@ -161,8 +161,11 @@ export default function OrganizationDashboard() {
   const handleDeleteEmployee = async (userId: number) => {
     try {
       await deleteUser(userId, token)
+      // Remove the user from local state instead of refetching all data
+      setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId))
+      // Also remove their clocks from local state
+      setClocks((prevClocks) => prevClocks.filter((clock) => clock.user_id !== userId))
       toast.success('Employee deleted successfully')
-      fetchData() // Refresh data
     } catch (error) {
       console.error('Failed to delete employee:', error)
       toast.error('Failed to delete employee')
@@ -636,7 +639,12 @@ export default function OrganizationDashboard() {
       />
 
       {/* Team Edit Dialog */}
-      <TeamEditDialog team={editingTeam} open={isTeamEditOpen} onOpenChange={setIsTeamEditOpen} />
+      <TeamEditDialog
+        team={editingTeam}
+        open={isTeamEditOpen}
+        onOpenChange={setIsTeamEditOpen}
+        onSave={fetchData}
+      />
 
       {/* Employee Ranking Dialogs */}
       <EmployeeRankingDialog

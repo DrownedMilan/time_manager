@@ -47,7 +47,10 @@ class User(SQLModel, table=True):
     )
 
     # Relations
-    clocks: List["Clock"] = Relationship(back_populates="user")
+    clocks: List["Clock"] = Relationship(
+        back_populates="user",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"}
+    )
 
     team_id: Optional[int] = Field(default=None, foreign_key="teams.id")
     
@@ -161,6 +164,12 @@ class Team(SQLModel, table=True):
 #                     SCHEMAS
 # =====================================================
 
+# Simple team info for UserPublic (no manager to avoid circular ref)
+class TeamBasic(SQLModel):
+    id: int
+    name: str
+
+
 class UserPublic(SQLModel):
     id: int
     email: str
@@ -170,6 +179,8 @@ class UserPublic(SQLModel):
     created_at: datetime
     keycloak_id: str
     realm_roles: List[str]
+    team_id: Optional[int] = None
+    team: Optional[TeamBasic] = None  # Add team info
 
 
 class UserMinimal(SQLModel):
@@ -185,7 +196,8 @@ class UserCreate(SQLModel):
     last_name: str
     email: EmailStr
     phone_number: str
-
+    keycloak_id: str = ""
+    realm_roles: List[str] = []
 
 class UserUpdate(SQLModel):
     first_name: Optional[str] = None

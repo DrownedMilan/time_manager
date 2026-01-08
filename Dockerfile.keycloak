@@ -1,0 +1,20 @@
+FROM node:20-alpine AS theme-build
+WORKDIR /app/frontend
+
+RUN corepack enable
+RUN apk add --no-cache openjdk17 maven
+
+# Copy yarn config first, then package files
+COPY frontend/.yarnrc.yml frontend/package.json frontend/yarn.lock ./
+
+# Install dependencies (without --immutable to allow lockfile updates if needed)
+RUN yarn install
+
+# Copy the rest of the frontend
+COPY frontend/. .
+
+# Build the Keycloak theme
+RUN yarn build-keycloak-theme
+
+FROM quay.io/keycloak/keycloak:26.4.0
+COPY --from=theme-build /app/frontend/dist_keycloak/keycloak-theme-for-kc-all-other-versions.jar /opt/keycloak/providers/keycloak-theme-for-kc-all-other-versions.jar
