@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useRef } from 'react'
 import { getUserClocks } from '@/services/userService'
 import type { Clock } from '../types/clock'
 
@@ -8,6 +8,7 @@ interface UseClockResult {
   isError: boolean
   error: unknown
   refetch: () => void
+  setData: React.Dispatch<React.SetStateAction<Clock[] | null>>
 }
 
 export function useUserClocks(userId: number | null, authToken?: string | null): UseClockResult {
@@ -15,6 +16,7 @@ export function useUserClocks(userId: number | null, authToken?: string | null):
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isError, setIsError] = useState<boolean>(false)
   const [error, setError] = useState<unknown>(null)
+  const isInitialLoad = useRef(true)
 
   const load = useCallback(async () => {
     // Guard: don't fetch if userId is invalid
@@ -24,7 +26,10 @@ export function useUserClocks(userId: number | null, authToken?: string | null):
       return
     }
 
-    setIsLoading(true)
+    // Only show loading spinner on initial load, not on refetch
+    if (isInitialLoad.current) {
+      setIsLoading(true)
+    }
     setIsError(false)
     setError(null)
 
@@ -38,10 +43,12 @@ export function useUserClocks(userId: number | null, authToken?: string | null):
       setData([])
     } finally {
       setIsLoading(false)
+      isInitialLoad.current = false
     }
   }, [userId, authToken])
 
   useEffect(() => {
+    isInitialLoad.current = true
     load()
   }, [load])
 
@@ -51,5 +58,6 @@ export function useUserClocks(userId: number | null, authToken?: string | null):
     isError,
     error,
     refetch: load,
+    setData, // Expose setData for optimistic updates
   }
 }
