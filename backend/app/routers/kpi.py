@@ -15,8 +15,6 @@ router = APIRouter(prefix="/kpi", tags=["kpi"])
 class KPISummary(BaseModel):
     totalEmployees: int
     totalTeams: int
-    activeClocks: int
-
     totalHoursThisWeek: float
     avgHoursPerShift: float
     avgLateTimeMinutes: float
