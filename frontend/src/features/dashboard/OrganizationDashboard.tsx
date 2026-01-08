@@ -468,7 +468,7 @@ export default function OrganizationDashboard() {
           <Button
             onClick={handleDownloadKpiCsv}
             disabled={isKpiDownloading}
-            className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white disabled:opacity-60"
+            className="bg-gradient-to-r from-green-500 to-emerald-500 text-white"
           >
             {isKpiDownloading ? (
               <>
@@ -478,7 +478,7 @@ export default function OrganizationDashboard() {
             ) : (
               <>
                 <Download className="w-4 h-4 mr-2" />
-                Export KPI
+                Export as CSV
               </>
             )}
           </Button>
