@@ -37,7 +37,7 @@ interface EmployeeEditDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onDelete?: (userId: number) => void
-  onSave?: () => void
+  onSave?: (savedUser: User, isNew: boolean) => void // Updated signature
 }
 
 export default function EmployeeEditDialog({
@@ -111,9 +111,11 @@ export default function EmployeeEditDialog({
     setIsSubmitting(true)
 
     try {
+      let savedUser: User
+
       if (user) {
         // Update existing user
-        await updateUser(
+        savedUser = await updateUser(
           user.id,
           {
             first_name: firstName.trim(),
@@ -124,6 +126,10 @@ export default function EmployeeEditDialog({
           token,
         )
         toast.success(`Employee ${firstName} ${lastName} updated successfully!`)
+        onOpenChange(false)
+        if (onSave) {
+          onSave(savedUser, false)
+        }
       } else {
         // Create new user
         const payload: UserCreatePayload = {
@@ -131,16 +137,15 @@ export default function EmployeeEditDialog({
           last_name: lastName.trim(),
           email: email.trim(),
           phone_number: phoneNumber.trim(),
-          keycloak_id: `manual-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // Unique ID
+          keycloak_id: `manual-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           realm_roles: [role.toLowerCase()],
         }
-        await createUser(payload, token)
+        savedUser = await createUser(payload, token)
         toast.success(`Employee ${firstName} ${lastName} added successfully!`)
-      }
-
-      onOpenChange(false)
-      if (onSave) {
-        onSave()
+        onOpenChange(false)
+        if (onSave) {
+          onSave(savedUser, true)
+        }
       }
     } catch (error: any) {
       console.error('Failed to save employee:', error)

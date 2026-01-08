@@ -23,13 +23,14 @@ import { getUsers } from '@/services/userService'
 import { createTeam, addMemberToTeam } from '@/services/teamService'
 import type { User } from '@/types/user'
 import { UserRole as UserRoleEnum } from '@/types/user'
+import type { Team } from '@/types/team'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
 interface AddTeamDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onTeamCreated?: () => void
+  onTeamCreated?: (team: Team) => void // Updated signature
 }
 
 export default function AddTeamDialog({ open, onOpenChange, onTeamCreated }: AddTeamDialogProps) {
@@ -123,9 +124,9 @@ export default function AddTeamDialog({ open, onOpenChange, onTeamCreated }: Add
       resetForm()
       onOpenChange(false)
 
-      // Notify parent to refresh
+      // Notify parent with the new team
       if (onTeamCreated) {
-        onTeamCreated()
+        onTeamCreated(newTeam)
       }
     } catch (error: any) {
       console.error('Failed to create team:', error)
