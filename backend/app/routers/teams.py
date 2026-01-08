@@ -126,8 +126,15 @@ async def delete_team(team_id: int, session: Session = Depends(get_session)) -> 
     if not db_team:
         raise HTTPException(status_code=404, detail="Team not found")
 
+    # Unassign all members from this team first
+    for member in db_team.members:
+        member.team_id = None
+        session.add(member)
+
+    # Create response before deletion (while object is still valid)
+    response = TeamPublic.model_validate(db_team)
+
     session.delete(db_team)
     session.commit()
 
-    # db_team still exists in memory → return its public version
-    return TeamPublic.model_validate(db_team)
+    return response

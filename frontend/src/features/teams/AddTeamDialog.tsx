@@ -22,13 +22,15 @@ import { useAuth } from '@/hooks/useAuth'
 import { getUsers } from '@/services/userService'
 import { createTeam, addMemberToTeam } from '@/services/teamService'
 import type { User } from '@/types/user'
+import { UserRole as UserRoleEnum } from '@/types/user'
+import type { Team } from '@/types/team'
 import { toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
 interface AddTeamDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onTeamCreated?: () => void
+  onTeamCreated?: (team: Team) => void // Updated signature
 }
 
 export default function AddTeamDialog({ open, onOpenChange, onTeamCreated }: AddTeamDialogProps) {
@@ -39,7 +41,7 @@ export default function AddTeamDialog({ open, onOpenChange, onTeamCreated }: Add
   const [description, setDescription] = useState('')
   const [selectedManagerId, setSelectedManagerId] = useState<string>('')
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<number[]>([])
-  
+
   const [users, setUsers] = useState<User[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -64,21 +66,14 @@ export default function AddTeamDialog({ open, onOpenChange, onTeamCreated }: Add
     }
   }
 
-  // Get available managers (users with manager role who don't manage a team)
-  // Note: You may need to adjust this filter based on your actual role field from API
+  // Get available managers (users with Manager role who don't already manage a team)
   const availableManagers = users.filter((user) => {
-    const roles = (user as any).realm_roles || []
-    const isManager = roles.some((r: string) => r.toLowerCase() === 'manager')
-    // Check if already managing a team - this info might need to come from backend
-    return isManager
+    return user.role === UserRoleEnum.MANAGER
   })
 
   // Get unassigned employees (users without a team)
   const unassignedEmployees = users.filter((user) => {
-    const roles = (user as any).realm_roles || []
-    const isEmployee = roles.some((r: string) => r.toLowerCase() === 'employee')
-    // Filter out users already in a team
-    return isEmployee && !(user as any).team_id
+    return user.role === UserRoleEnum.EMPLOYEE && !user.team
   })
 
   const handleEmployeeToggle = (employeeId: number) => {
@@ -128,10 +123,10 @@ export default function AddTeamDialog({ open, onOpenChange, onTeamCreated }: Add
       // Reset form and close dialog
       resetForm()
       onOpenChange(false)
-      
-      // Notify parent to refresh
+
+      // Notify parent with the new team
       if (onTeamCreated) {
-        onTeamCreated()
+        onTeamCreated(newTeam)
       }
     } catch (error: any) {
       console.error('Failed to create team:', error)
@@ -211,8 +206,8 @@ export default function AddTeamDialog({ open, onOpenChange, onTeamCreated }: Add
                 Manager <span className="text-red-400">*</span>
               </Label>
               {availableManagers.length > 0 ? (
-                <Select 
-                  value={selectedManagerId} 
+                <Select
+                  value={selectedManagerId}
                   onValueChange={setSelectedManagerId}
                   disabled={isSubmitting}
                 >
