@@ -3,7 +3,7 @@ from sqlmodel import Session, select
 from app.database import get_session
 from app.auth import get_current_user
 from app.models import (
-    User, UserMinimal, TeamMinimal, UserCreate, UserPublic, UserUpdate,
+    User, UserMinimal, TeamMinimal, TeamBasic, UserCreate, UserPublic, UserUpdate,
     Clock, ClockPublic, UserMe
 )
 
@@ -85,9 +85,25 @@ async def create_user(
 # Read all users
 @router.get("/", response_model=list[UserPublic])
 async def read_users(session: Session = Depends(get_session)) -> list[UserPublic]:
-
     db_users = session.exec(select(User)).all()
-    return [UserPublic.model_validate(u) for u in db_users]
+    
+    result = []
+    for u in db_users:
+        user_data = UserPublic(
+            id=u.id,
+            email=u.email,
+            first_name=u.first_name,
+            last_name=u.last_name,
+            phone_number=u.phone_number,
+            created_at=u.created_at,
+            keycloak_id=u.keycloak_id,
+            realm_roles=u.realm_roles,
+            team_id=u.team_id,
+            team=TeamBasic(id=u.team.id, name=u.team.name) if u.team else None
+        )
+        result.append(user_data)
+    
+    return result
 
 
 # Read single user
@@ -150,9 +166,20 @@ async def delete_user(
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
 
+    # If user is a manager, unassign them from the team first
+    if db_user.managed_team:
+        db_user.managed_team.manager_id = None
+        session.add(db_user.managed_team)
+
+    # Delete all user's clocks first
+    for clock in db_user.clocks:
+        session.delete(clock)
+
+    # Create response before deletion (while object is still valid)
+    response = UserPublic.model_validate(db_user)
+
     session.delete(db_user)
     session.commit()
 
-    # Still valid in memory → convert before returning
-    return UserPublic.model_validate(db_user)
+    return response
 

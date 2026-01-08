@@ -154,8 +154,11 @@ export default function OrganizationDashboard() {
   const handleDeleteEmployee = async (userId: number) => {
     try {
       await deleteUser(userId, token)
+      // Remove the user from local state instead of refetching all data
+      setUsers((prevUsers) => prevUsers.filter((user) => user.id !== userId))
+      // Also remove their clocks from local state
+      setClocks((prevClocks) => prevClocks.filter((clock) => clock.user_id !== userId))
       toast.success('Employee deleted successfully')
-      fetchData()
     } catch (error) {
       console.error('Failed to delete employee:', error)
       toast.error('Failed to delete employee')
@@ -442,6 +445,20 @@ export default function OrganizationDashboard() {
     toast.success('Data exported successfully!')
   }
 
+  const handleSaveEmployee = (savedUser: User, isNew: boolean) => {
+    if (isNew) {
+      // Add new user to the list
+      setUsers((prevUsers) => [...prevUsers, savedUser])
+    } else {
+      // Update existing user in the list
+      setUsers((prevUsers) => prevUsers.map((u) => (u.id === savedUser.id ? savedUser : u)))
+    }
+  }
+
+  const handleTeamCreated = (newTeam: Team) => {
+    setTeams((prevTeams) => [...prevTeams, newTeam])
+  }
+
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8 flex items-center justify-between">
@@ -629,7 +646,11 @@ export default function OrganizationDashboard() {
       <TeamDetailView team={selectedTeam} open={isTeamDetailOpen} onOpenChange={setIsTeamDetailOpen} />
 
       {/* Add Team Dialog */}
-      <AddTeamDialog open={isAddTeamDialogOpen} onOpenChange={setIsAddTeamDialogOpen} onTeamCreated={fetchData} />
+      <AddTeamDialog
+        open={isAddTeamDialogOpen}
+        onOpenChange={setIsAddTeamDialogOpen}
+        onTeamCreated={handleTeamCreated}
+      />
 
       {/* Employee Edit Dialog */}
       <EmployeeEditDialog
@@ -637,11 +658,16 @@ export default function OrganizationDashboard() {
         open={isEmployeeEditOpen}
         onOpenChange={setIsEmployeeEditOpen}
         onDelete={handleDeleteEmployee}
-        onSave={fetchData}
+        onSave={handleSaveEmployee}
       />
 
       {/* Team Edit Dialog */}
-      <TeamEditDialog team={editingTeam} open={isTeamEditOpen} onOpenChange={setIsTeamEditOpen} />
+      <TeamEditDialog
+        team={editingTeam}
+        open={isTeamEditOpen}
+        onOpenChange={setIsTeamEditOpen}
+        onSave={fetchData}
+      />
 
       {/* Employee Ranking Dialogs */}
       <EmployeeRankingDialog

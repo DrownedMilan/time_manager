@@ -45,7 +45,7 @@ export default function UsersTable({ users, onEditUser }: UsersTableProps) {
   }, [users])
 
   const uniqueRoles = useMemo(() => {
-    const roles = new Set(users.map((user) => user.role))
+    const roles = new Set(users.map((user) => user.role).filter(Boolean))
     return Array.from(roles).sort()
   }, [users])
 
@@ -57,7 +57,7 @@ export default function UsersTable({ users, onEditUser }: UsersTableProps) {
   }, [users])
 
   const uniqueDates = useMemo(() => {
-    const dates = new Set(users.map((user) => formatDate(user.created_at)))
+    const dates = new Set(users.map((user) => formatDate(user.created_at)).filter(Boolean))
     return Array.from(dates).sort()
   }, [users])
 
@@ -108,8 +108,8 @@ export default function UsersTable({ users, onEditUser }: UsersTableProps) {
                     All Roles
                   </SelectItem>
                   {uniqueRoles.map((role) => (
-                    <SelectItem key={role} value={role} className="text-white">
-                      {role}
+                    <SelectItem key={role || 'unknown'} value={role || 'unknown'} className="text-white">
+                      {role || 'Unknown'}
                     </SelectItem>
                   ))}
                 </SelectContent>

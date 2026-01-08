@@ -36,7 +36,6 @@ export const KeycloakProvider = ({ children }: KeycloakProviderProps) => {
         localStorage.setItem('kc_token', keycloak.token)
 
         await keycloak.updateToken(30).catch(() => keycloak.login())
-        console.log('Keycloak token:', keycloak.token)
         console.log('Token parsed:', keycloak.tokenParsed)
         console.log('Token expires in:', (keycloak.tokenParsed?.exp || 0) - Date.now() / 1000)
 

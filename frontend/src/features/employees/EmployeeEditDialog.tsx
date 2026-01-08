@@ -37,15 +37,15 @@ interface EmployeeEditDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onDelete?: (userId: number) => void
-  onSave?: () => void
+  onSave?: (savedUser: User, isNew: boolean) => void // Updated signature
 }
 
-export default function EmployeeEditDialog({ 
-  user, 
-  open, 
-  onOpenChange, 
+export default function EmployeeEditDialog({
+  user,
+  open,
+  onOpenChange,
   onDelete,
-  onSave 
+  onSave,
 }: EmployeeEditDialogProps) {
   const { keycloak } = useAuth()
   const token = keycloak?.token ?? null
@@ -111,9 +111,11 @@ export default function EmployeeEditDialog({
     setIsSubmitting(true)
 
     try {
+      let savedUser: User
+
       if (user) {
         // Update existing user
-        await updateUser(
+        savedUser = await updateUser(
           user.id,
           {
             first_name: firstName.trim(),
@@ -124,6 +126,10 @@ export default function EmployeeEditDialog({
           token,
         )
         toast.success(`Employee ${firstName} ${lastName} updated successfully!`)
+        onOpenChange(false)
+        if (onSave) {
+          onSave(savedUser, false)
+        }
       } else {
         // Create new user
         const payload: UserCreatePayload = {
@@ -131,16 +137,15 @@ export default function EmployeeEditDialog({
           last_name: lastName.trim(),
           email: email.trim(),
           phone_number: phoneNumber.trim(),
-          keycloak_id: `temp-${Date.now()}`, // Temporary keycloak_id - should be replaced with real Keycloak integration
+          keycloak_id: `manual-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
           realm_roles: [role.toLowerCase()],
         }
-        await createUser(payload, token)
+        savedUser = await createUser(payload, token)
         toast.success(`Employee ${firstName} ${lastName} added successfully!`)
-      }
-
-      onOpenChange(false)
-      if (onSave) {
-        onSave()
+        onOpenChange(false)
+        if (onSave) {
+          onSave(savedUser, true)
+        }
       }
     } catch (error: any) {
       console.error('Failed to save employee:', error)
@@ -261,8 +266,8 @@ export default function EmployeeEditDialog({
               <Label htmlFor="role" className="text-white/80">
                 Role
               </Label>
-              <Select 
-                value={role} 
+              <Select
+                value={role}
                 onValueChange={(value) => setRole(value as UserRole)}
                 disabled={isSubmitting}
               >
@@ -337,7 +342,7 @@ export default function EmployeeEditDialog({
                   Delete
                 </Button>
               )}
-              
+
               {/* Spacer when no delete button */}
               {(!user || !onDelete) && <div />}
 
@@ -382,8 +387,12 @@ export default function EmployeeEditDialog({
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Delete Employee</AlertDialogTitle>
             <AlertDialogDescription className="text-white/60">
-              Are you sure you want to delete <span className="text-white font-medium">{user?.first_name} {user?.last_name}</span>? 
-              This action cannot be undone and will remove all associated data including clock records.
+              Are you sure you want to delete{' '}
+              <span className="text-white font-medium">
+                {user?.first_name} {user?.last_name}
+              </span>
+              ? This action cannot be undone and will remove all associated data including clock
+              records.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

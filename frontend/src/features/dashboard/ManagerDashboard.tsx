@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import StatCard from '../../components/common/StatCard'
 import ClockWidget from '../../components/common/ClockWidget'
 import ClockRecordsTable from '../../components/ClockRecordsTable'
@@ -16,9 +16,10 @@ import {
   ClockAlert,
   User as UserIcon,
   Download,
+  Loader2,
 } from 'lucide-react'
-import type { User, Clock as ClockType } from '@/types'
-import { mockClocks, mockTeams } from '@/lib/mockData'
+import type { Clock as ClockType } from '@/types/clock'
+import type { Team } from '@/types/team'
 import {
   BarChart,
   Bar,
@@ -30,29 +31,74 @@ import {
   Legend,
 } from 'recharts'
 import { useUser } from '@/hooks/useUser'
+import { useAuth } from '@/hooks/useAuth'
+import { getUserClocks } from '@/services/userService'
+import { getTeams } from '@/services/teamService'
+import { getClocks } from '@/services/clockService'
+import { toast } from 'sonner'
 
 export default function ManagerDashboard() {
   const { user } = useUser()
-  
-  if (!user) 
-    return <div>Loading...</div>
+  const { keycloak } = useAuth()
+  const token = keycloak?.token ?? null
 
+  const [isLoading, setIsLoading] = useState(true)
+  const [managerClocks, setManagerClocks] = useState<ClockType[]>([])
+  const [team, setTeam] = useState<Team | null>(null)
+  const [teamClocks, setTeamClocks] = useState<ClockType[]>([])
   const [metricDialogOpen, setMetricDialogOpen] = useState<
     'workTime' | 'lateTime' | 'overtime' | null
   >(null)
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('employee')
 
-  // Manager's own clock records (since managers are also employees)
-  const [managerClocks, setManagerClocks] = useState<ClockType[]>(
-    mockClocks.filter((c) => c.user_id === user.id),
-  )
+  // Fetch data from API
+  const fetchData = useCallback(async () => {
+    if (!token || !user) return
+
+    setIsLoading(true)
+    try {
+      // Fetch manager's own clocks
+      const userClocks = await getUserClocks(user.id, token)
+      setManagerClocks(userClocks)
+
+      // Fetch all teams and find the one this manager manages
+      const allTeams = await getTeams(token)
+      const managedTeam = allTeams.find((t) => t.manager_id === user.id) || null
+      setTeam(managedTeam)
+
+      // If manager has a team, fetch all clocks and filter for team members
+      if (managedTeam && managedTeam.members.length > 0) {
+        const allClocks = await getClocks(token)
+        const memberIds = managedTeam.members.map((m) => m.id)
+        const filteredClocks = allClocks.filter((c) => memberIds.includes(c.user_id))
+        setTeamClocks(filteredClocks)
+      }
+    } catch (error) {
+      console.error('Failed to fetch data:', error)
+      toast.error('Failed to load dashboard data')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [token, user])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  if (!user) return <div>Loading...</div>
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 sm:px-6 py-8 flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-white/60" />
+        <span className="ml-3 text-white/60">Loading dashboard...</span>
+      </div>
+    )
+  }
 
   const currentClock = managerClocks.find((c) => !c.clock_out) || null
-
-  const team = mockTeams.find((t) => t.manager_id === user.id)
   const teamMemberIds = team?.members.map((m) => m.id) || []
-  const teamClocks = mockClocks.filter((c) => teamMemberIds.includes(c.user_id))
 
   const activeClocks = teamClocks.filter((c) => !c.clock_out).length
   const completedClocksThisWeek = teamClocks.filter((c) => c.clock_out).length
@@ -69,7 +115,7 @@ export default function ManagerDashboard() {
   const avgTotalHours =
     team && team.members.length > 0 ? totalHoursThisWeek / team.members.length : 0
 
-  // Calculate working days this month for the manager (since manager is also an employee)
+  // Calculate working days this month for the manager
   const now = new Date()
   const year = now.getFullYear()
   const month = now.getMonth()
@@ -82,7 +128,6 @@ export default function ManagerDashboard() {
   for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
     const dayOfWeek = d.getDay()
     if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      // Not Sunday (0) or Saturday (6)
       totalWorkingDays++
     }
   }
@@ -94,7 +139,6 @@ export default function ManagerDashboard() {
     return clockDate >= firstDayOfMonth && c.clock_out
   })
 
-  // Get unique dates worked (in case of multiple clock entries per day)
   const daysWorkedSet = new Set(clocksThisMonth.map((c) => new Date(c.clock_in).toDateString()))
   const daysWorked = daysWorkedSet.size
 
@@ -219,26 +263,6 @@ export default function ManagerDashboard() {
     return memberMetrics.sort((a, b) => b.value - a.value)
   }
 
-  // Calculate today's work hours for the manager
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const managerTodayClocks = managerClocks.filter((c) => {
-    const clockDate = new Date(c.clock_in)
-    clockDate.setHours(0, 0, 0, 0)
-    return clockDate.getTime() === today.getTime()
-  })
-
-  const todayWorkHours = managerTodayClocks.reduce((acc, clock) => {
-    if (clock.clock_out) {
-      const diff = new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()
-      return acc + diff / (1000 * 60 * 60)
-    } else {
-      // If still clocked in, calculate time up to now
-      const diff = new Date().getTime() - new Date(clock.clock_in).getTime()
-      return acc + diff / (1000 * 60 * 60)
-    }
-  }, 0)
-
   // Calculate manager's own hours this week
   const managerCompletedClocks = managerClocks.filter((c) => c.clock_out)
   const managerHoursThisWeek = managerCompletedClocks.reduce((acc, clock) => {
@@ -260,7 +284,7 @@ export default function ManagerDashboard() {
     const clockInHour = clockInDate.getHours()
     const clockInMinute = clockInDate.getMinutes()
     const clockInTotalMinutes = clockInHour * 60 + clockInMinute
-    const workStartMinutes = 9 * 60 // 9:00 AM in minutes
+    const workStartMinutes = 9 * 60
 
     return Math.max(0, clockInTotalMinutes - workStartMinutes)
   })
@@ -270,7 +294,7 @@ export default function ManagerDashboard() {
       ? managerLateMinutes.reduce((sum, min) => sum + min, 0) / managerLateMinutes.length
       : 0
 
-  // Chart data - hours per day for the team
+  // Chart data - hours per team member
   const chartData =
     team?.members.map((member) => {
       const memberClocks = teamClocks.filter((c) => c.user_id === member.id && c.clock_out)
@@ -288,33 +312,17 @@ export default function ManagerDashboard() {
       }
     }) || []
 
-  // Clock in/out handlers for the manager
+  // Clock in/out handlers - these will be passed to ClockWidget
   const handleClockIn = () => {
-    const newClock: ClockType = {
-      id: Date.now(),
-      user_id: user.id,
-      clock_in: new Date().toISOString(),
-      clock_out: null,
-      created_at: new Date().toISOString(),
-      user: {
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        role: user.role,
-      },
-    }
-    setManagerClocks([newClock, ...managerClocks])
+    // ClockWidget handles the API call internally via useClock hook
+    // After clock in, refresh data
+    fetchData()
   }
 
   const handleClockOut = () => {
-    setManagerClocks(
-      managerClocks.map((c) =>
-        c.id === currentClock?.id && !c.clock_out
-          ? { ...c, clock_out: new Date().toISOString() }
-          : c,
-      ),
-    )
+    // ClockWidget handles the API call internally via useClock hook
+    // After clock out, refresh data
+    fetchData()
   }
 
   return (
@@ -354,17 +362,15 @@ export default function ManagerDashboard() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-white/50 text-xs mb-1">Phone</span>
-                  <span className="text-white/90">{user.phone_number}</span>
+                  <span className="text-white/90">{user.phone_number || 'N/A'}</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-white/50 text-xs mb-1">Team</span>
-                  <span className="text-white/90">{team?.name || 'Not assigned'}</span>
+                  <span className="text-white/90">{team?.name || 'N/A'}</span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-white/50 text-xs mb-1">Manager</span>
-                  <span className="text-white/90">
-                    {team?.manager ? `${team.manager.first_name} ${team.manager.last_name}` : 'N/A'}
-                  </span>
+                  <span className="text-white/50 text-xs mb-1">Role</span>
+                  <span className="text-white/90">Manager</span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-white/50 text-xs mb-1">Member Since</span>
@@ -422,9 +428,7 @@ export default function ManagerDashboard() {
               title="Team"
               value={team?.name || 'No Team'}
               icon={UserIcon}
-              description={
-                team?.manager?.first_name ? `Manager: ${team.manager.first_name}` : 'Not assigned'
-              }
+              description={`${team?.members.length || 0} members`}
             />
           </div>
 
