@@ -1,5 +1,6 @@
 import { api } from '@/lib/api'
-import type { User, UserUpdatePayload } from '@/types/user'
+import type { User, UserUpdatePayload, UserApiResponse } from '@/types/user'
+import { parseUser } from '@/types/user'
 import type { Clock } from '@/types/clock'
 
 export interface UserCreatePayload {
@@ -15,22 +16,24 @@ export interface UserCreatePayload {
  * GET /users
  * Return all users
  */
-export async function getUsers(authToken?: string | null) {
-  return api<User[]>(`/users/`, {
+export async function getUsers(authToken?: string | null): Promise<User[]> {
+  const response = await api<UserApiResponse[]>(`/users/`, {
     method: 'GET',
     authToken,
   })
+  return response.map(parseUser)
 }
 
 /**
  * GET /users/:id
  * Return a user by id
  */
-export async function getUserById(userId: number, authToken?: string | null) {
-  return api<User>(`/users/${userId}`, {
+export async function getUserById(userId: number, authToken?: string | null): Promise<User> {
+  const response = await api<UserApiResponse>(`/users/${userId}`, {
     method: 'GET',
     authToken,
   })
+  return parseUser(response)
 }
 
 /**
@@ -40,12 +43,13 @@ export async function getUserById(userId: number, authToken?: string | null) {
 export async function createUser(
   payload: UserCreatePayload,
   authToken?: string | null,
-) {
-  return api<User>(`/users/`, {
+): Promise<User> {
+  const response = await api<UserApiResponse>(`/users/`, {
     method: 'POST',
     body: payload,
     authToken,
   })
+  return parseUser(response)
 }
 
 /**
@@ -56,12 +60,13 @@ export async function updateUser(
   userId: number,
   payload: UserUpdatePayload,
   authToken?: string | null,
-) {
-  return api<User>(`/users/${userId}`, {
+): Promise<User> {
+  const response = await api<UserApiResponse>(`/users/${userId}`, {
     method: 'PUT',
     body: payload,
     authToken,
   })
+  return parseUser(response)
 }
 
 /**
@@ -80,7 +85,7 @@ export async function getUserClocks(userId: number, authToken?: string | null) {
  * Deletes a user
  */
 export async function deleteUser(userId: number, authToken?: string | null) {
-  return api<User>(`/users/${userId}`, {
+  return api<void>(`/users/${userId}`, {
     method: 'DELETE',
     authToken,
   })

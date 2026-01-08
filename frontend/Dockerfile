@@ -7,11 +7,11 @@ WORKDIR /app
 # Enable corepack (uses built-in Yarn from Node)
 RUN corepack enable
 
-# Copy package files
-COPY package.json yarn.lock ./
+# Copy package files AND yarn config
+COPY package.json yarn.lock .yarnrc.yml ./
 
 # Install dependencies
-RUN yarn install --immutable
+RUN yarn install
 
 # Copy the rest of the frontend
 COPY . .

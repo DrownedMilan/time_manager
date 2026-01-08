@@ -40,12 +40,12 @@ interface EmployeeEditDialogProps {
   onSave?: () => void
 }
 
-export default function EmployeeEditDialog({ 
-  user, 
-  open, 
-  onOpenChange, 
+export default function EmployeeEditDialog({
+  user,
+  open,
+  onOpenChange,
   onDelete,
-  onSave 
+  onSave,
 }: EmployeeEditDialogProps) {
   const { keycloak } = useAuth()
   const token = keycloak?.token ?? null
@@ -131,7 +131,7 @@ export default function EmployeeEditDialog({
           last_name: lastName.trim(),
           email: email.trim(),
           phone_number: phoneNumber.trim(),
-          keycloak_id: `temp-${Date.now()}`, // Temporary keycloak_id - should be replaced with real Keycloak integration
+          keycloak_id: `manual-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`, // Unique ID
           realm_roles: [role.toLowerCase()],
         }
         await createUser(payload, token)
@@ -261,8 +261,8 @@ export default function EmployeeEditDialog({
               <Label htmlFor="role" className="text-white/80">
                 Role
               </Label>
-              <Select 
-                value={role} 
+              <Select
+                value={role}
                 onValueChange={(value) => setRole(value as UserRole)}
                 disabled={isSubmitting}
               >
@@ -337,7 +337,7 @@ export default function EmployeeEditDialog({
                   Delete
                 </Button>
               )}
-              
+
               {/* Spacer when no delete button */}
               {(!user || !onDelete) && <div />}
 
@@ -382,8 +382,12 @@ export default function EmployeeEditDialog({
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Delete Employee</AlertDialogTitle>
             <AlertDialogDescription className="text-white/60">
-              Are you sure you want to delete <span className="text-white font-medium">{user?.first_name} {user?.last_name}</span>? 
-              This action cannot be undone and will remove all associated data including clock records.
+              Are you sure you want to delete{' '}
+              <span className="text-white font-medium">
+                {user?.first_name} {user?.last_name}
+              </span>
+              ? This action cannot be undone and will remove all associated data including clock
+              records.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
