@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { getKpiSummary, type KPISummary } from '@/lib/kpiService'
 import { adrienApi } from '@/lib/adrienApi'
 import StatCard from '../../components/common/StatCard'
 import UsersTable from '../../components/UsersTable'
@@ -40,7 +41,6 @@ import {
   Legend,
 } from 'recharts'
 import { toast } from 'sonner'
-
 import { useUser } from '@/hooks/useUser'
 
 export default function OrganizationDashboard() {
@@ -50,33 +50,22 @@ export default function OrganizationDashboard() {
     // USERS
     adrienApi
       .users()
-      .then((data) => {
-        console.log('✅ USERS API:', data)
-      })
-      .catch((err) => {
-        console.error('❌ USERS API error:', err)
-      })
+      .then((data) => console.log('✅ USERS API:', data))
+      .catch((err) => console.error('❌ USERS API error:', err))
 
     // TEAMS
     adrienApi
       .teams()
-      .then((data) => {
-        console.log('✅ TEAMS API:', data)
-      })
-      .catch((err) => {
-        console.error('❌ TEAMS API error:', err)
-      })
+      .then((data) => console.log('✅ TEAMS API:', data))
+      .catch((err) => console.error('❌ TEAMS API error:', err))
 
     // CLOCKS
     adrienApi
       .clocks()
-      .then((data) => {
-        console.log('✅ CLOCKS API:', data)
-      })
-      .catch((err) => {
-        console.error('❌ CLOCKS API error:', err)
-      })
+      .then((data) => console.log('✅ CLOCKS API:', data))
+      .catch((err) => console.error('❌ CLOCKS API error:', err))
   }, [])
+
   const { keycloak } = useAuth()
   const token = keycloak?.token ?? null
 
@@ -85,6 +74,10 @@ export default function OrganizationDashboard() {
   const [teams, setTeams] = useState<Team[]>([])
   const [clocks, setClocks] = useState<ClockType[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  // ✅ KPI API states
+  const [isKpiDownloading, setIsKpiDownloading] = useState(false)
+  const [kpiApi, setKpiApi] = useState<KPISummary | null>(null)
 
   // UI state
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
@@ -137,7 +130,7 @@ export default function OrganizationDashboard() {
   }
 
   // =====================
-  // Base KPI data sources
+  // Base KPI data sources (local)
   // =====================
   const totalUsers = users.length
   const totalTeams = teams.length
@@ -296,14 +289,13 @@ export default function OrganizationDashboard() {
   }
 
   // =====================
-  // Chart data (generated from real clocks)
+  // Chart data
   // =====================
   const generateChartData = () => {
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri']
     const now = new Date()
-    const currentDayOfWeek = now.getDay() // 0 = Sunday, 1 = Monday, etc.
+    const currentDayOfWeek = now.getDay()
 
-    // Get the start of the current week (Monday)
     const startOfWeek = new Date(now)
     startOfWeek.setDate(now.getDate() - (currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1))
     startOfWeek.setHours(0, 0, 0, 0)
@@ -327,18 +319,14 @@ export default function OrganizationDashboard() {
 
       const uniqueEmployees = new Set(dayClocks.map((c) => c.user_id)).size
 
-      return {
-        day,
-        hours: parseFloat(hours.toFixed(1)),
-        employees: uniqueEmployees,
-      }
+      return { day, hours: parseFloat(hours.toFixed(1)), employees: uniqueEmployees }
     })
   }
 
   const chartData = generateChartData()
 
   // =====================
-  // CSV Export (Excel FR friendly)
+  // CSV Export helpers
   // =====================
   const CSV_SEPARATOR = ';'
   const isoDate = () => new Date().toISOString().slice(0, 10)
@@ -372,6 +360,30 @@ export default function OrganizationDashboard() {
     a.remove()
 
     URL.revokeObjectURL(url)
+  }
+
+  // ✅ KPI API download
+  const handleDownloadKpiCsv = async () => {
+    if (!token) {
+      toast.error('Missing auth token')
+      return
+    }
+
+    setIsKpiDownloading(true)
+    try {
+      const summary = await getKpiSummary(token)
+      setKpiApi(summary)
+
+      const today = isoDate()
+      downloadCsvExcel(`kpi-api-${today}.csv`, [summary])
+
+      toast.success('KPI (API) exported successfully!')
+    } catch (error) {
+      console.error('Failed to export KPI (API):', error)
+      toast.error('Failed to export KPI (API)')
+    } finally {
+      setIsKpiDownloading(false)
+    }
   }
 
   const handleExportCsv = () => {
@@ -417,7 +429,7 @@ export default function OrganizationDashboard() {
       })),
     )
 
-    // KPI
+    // KPI (local)
     downloadCsvExcel(`kpi-${today}.csv`, [
       {
         totalEmployees: totalUsers,
@@ -451,14 +463,35 @@ export default function OrganizationDashboard() {
     <div className="container mx-auto px-4 sm:px-6 py-8">
       <div className="mb-8 flex items-center justify-between">
         <h2 className="text-white/90 mb-2">Organization Dashboard</h2>
-        <Button
-          onClick={handleExportCsv}
-          className="bg-gradient-to-r from-green-500 to-emerald-500 text-white"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          Export as CSV
-        </Button>
+
+        <div className="flex gap-3">
+          <Button
+            onClick={handleDownloadKpiCsv}
+            disabled={isKpiDownloading}
+            className="bg-gradient-to-r from-green-500 to-emerald-500 text-white"
+          >
+            {isKpiDownloading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Downloading KPI...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Export as CSV
+              </>
+            )}
+          </Button>
+
+        </div>
       </div>
+
+      {kpiApi && (
+        <div className="mb-4 text-sm text-white/60">
+          KPI API → Employees: {kpiApi.totalEmployees} · Teams: {kpiApi.totalTeams} · Active:{' '}
+          {kpiApi.activeClocks} · Week Hours: {kpiApi.totalHoursThisWeek}
+        </div>
+      )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -572,11 +605,7 @@ export default function OrganizationDashboard() {
                   <p className="text-sm text-white/60">{totalTeams} total</p>
                 </div>
                 <div className="overflow-y-auto flex-1">
-                  <TeamsTable
-                    teams={teams}
-                    onTeamClick={handleTeamClick}
-                    onEditTeam={handleEditTeam}
-                  />
+                  <TeamsTable teams={teams} onTeamClick={handleTeamClick} onEditTeam={handleEditTeam} />
                 </div>
               </div>
             </TabsContent>
@@ -605,24 +634,8 @@ export default function OrganizationDashboard() {
                   }}
                 />
                 <Legend wrapperStyle={{ color: 'rgba(255,255,255,0.6)' }} />
-                <Line
-                  type="monotone"
-                  dataKey="hours"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                  dot={{ fill: '#3b82f6', r: 6 }}
-                  activeDot={{ r: 8 }}
-                  name="Total Hours"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="employees"
-                  stroke="#06b6d4"
-                  strokeWidth={3}
-                  dot={{ fill: '#06b6d4', r: 6 }}
-                  activeDot={{ r: 8 }}
-                  name="Active Employees"
-                />
+                <Line type="monotone" dataKey="hours" stroke="#3b82f6" strokeWidth={3} dot={{ fill: '#3b82f6', r: 6 }} activeDot={{ r: 8 }} name="Total Hours" />
+                <Line type="monotone" dataKey="employees" stroke="#06b6d4" strokeWidth={3} dot={{ fill: '#06b6d4', r: 6 }} activeDot={{ r: 8 }} name="Active Employees" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -630,11 +643,7 @@ export default function OrganizationDashboard() {
       </div>
 
       {/* Team Detail View */}
-      <TeamDetailView
-        team={selectedTeam}
-        open={isTeamDetailOpen}
-        onOpenChange={setIsTeamDetailOpen}
-      />
+      <TeamDetailView team={selectedTeam} open={isTeamDetailOpen} onOpenChange={setIsTeamDetailOpen} />
 
       {/* Add Team Dialog */}
       <AddTeamDialog
