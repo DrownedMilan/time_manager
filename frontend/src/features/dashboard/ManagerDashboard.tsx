@@ -59,10 +59,6 @@ export default function ManagerDashboard() {
   const [isKpiDownloading, setIsKpiDownloading] = useState(false)
   const [kpiApi, setKpiApi] = useState<KPISummary | null>(null)
 
-  // ✅ KPI API states (same as Organization page)
-  const [isKpiDownloading, setIsKpiDownloading] = useState(false)
-  const [kpiApi, setKpiApi] = useState<KPISummary | null>(null)
-
   // Fetch manager's own clocks using the hook (same as EmployeeDashboard)
   const {
     data: managerClocks,
@@ -357,67 +353,6 @@ export default function ManagerDashboard() {
         <span className="ml-3 text-white/60">Loading dashboard...</span>
       </div>
     )
-  }
-
-  // =====================
-  // CSV Export helpers (same as Organization page)
-  // =====================
-  const CSV_SEPARATOR = ';'
-  const isoDate = () => new Date().toISOString().slice(0, 10)
-
-  const escapeCsv = (value: any) => {
-    const s = String(value ?? '')
-    if (/[;"\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
-    return s
-  }
-
-  const rowsToCsvExcel = (rows: Record<string, any>[]) => {
-    if (!rows.length) return '\uFEFF' + `sep=${CSV_SEPARATOR}\n`
-
-    const headers = Object.keys(rows[0])
-    const headerLine = headers.map(escapeCsv).join(CSV_SEPARATOR)
-    const dataLines = rows.map((row) => headers.map((h) => escapeCsv(row[h])).join(CSV_SEPARATOR))
-
-    return '\uFEFF' + `sep=${CSV_SEPARATOR}\n` + [headerLine, ...dataLines].join('\n')
-  }
-
-  const downloadCsvExcel = (filename: string, rows: Record<string, any>[]) => {
-    const csv = rowsToCsvExcel(rows)
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url = URL.createObjectURL(blob)
-
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
-
-    URL.revokeObjectURL(url)
-  }
-
-  // ✅ KPI API download (same behavior as Organization page)
-  const handleDownloadKpiCsv = async () => {
-    if (!token) {
-      toast.error('Missing auth token')
-      return
-    }
-
-    setIsKpiDownloading(true)
-    try {
-      const summary = await getKpiSummary(token)
-      setKpiApi(summary)
-
-      const today = isoDate()
-      downloadCsvExcel(`kpi-api-${today}.csv`, [summary])
-
-      toast.success('KPI (API) exported successfully!')
-    } catch (error) {
-      console.error('Failed to export KPI (API):', error)
-      toast.error('Failed to export KPI (API)')
-    } finally {
-      setIsKpiDownloading(false)
-    }
   }
 
   // =====================
