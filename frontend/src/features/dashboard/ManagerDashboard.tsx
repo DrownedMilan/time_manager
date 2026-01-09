@@ -131,9 +131,7 @@ export default function ManagerDashboard() {
       })
       // Optimistically update the clock in the list
       setManagerClocks((prev) =>
-        prev
-          ? prev.map((c) => (c.id === updatedClock.id ? updatedClock : c))
-          : [updatedClock]
+        prev ? prev.map((c) => (c.id === updatedClock.id ? updatedClock : c)) : [updatedClock],
       )
     } catch (err) {
       console.error('Failed to clock out:', err)
@@ -168,7 +166,6 @@ export default function ManagerDashboard() {
     const month = now.getMonth()
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
-    
     let workingDays = 0
     for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
       const dayOfWeek = d.getDay()
@@ -237,7 +234,7 @@ export default function ManagerDashboard() {
   // Manager's personal stats - memoized
   const managerCompletedClocks = useMemo(
     () => managerClocksList.filter((c) => c.clock_out),
-    [managerClocksList]
+    [managerClocksList],
   )
 
   const managerHoursThisWeek = useMemo(() => {
@@ -269,80 +266,91 @@ export default function ManagerDashboard() {
 
   // Chart data - memoized
   const chartData = useMemo(() => {
-    return team?.members.map((member) => {
-      const memberClocks = teamClocks.filter((c) => c.user_id === member.id && c.clock_out)
-      const totalHours = memberClocks.reduce((acc, clock) => {
-        if (clock.clock_out) {
-          const diff = new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()
-          return acc + diff / (1000 * 60 * 60)
-        }
-        return acc
-      }, 0)
+    return (
+      team?.members.map((member) => {
+        const memberClocks = teamClocks.filter((c) => c.user_id === member.id && c.clock_out)
+        const totalHours = memberClocks.reduce((acc, clock) => {
+          if (clock.clock_out) {
+            const diff = new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()
+            return acc + diff / (1000 * 60 * 60)
+          }
+          return acc
+        }, 0)
 
-      return {
-        name: `${member.first_name} ${member.last_name.charAt(0)}.`,
-        hours: parseFloat(totalHours.toFixed(1)),
-      }
-    }) || []
+        return {
+          name: `${member.first_name} ${member.last_name.charAt(0)}.`,
+          hours: parseFloat(totalHours.toFixed(1)),
+        }
+      }) || []
+    )
   }, [team, teamClocks])
 
   // Ranking calculations - memoized
   const calculateTeamMemberWorkTime = useCallback(() => {
     if (!team) return []
-    return team.members.map((member) => {
-      const memberClocks = teamClocks.filter((c) => c.user_id === member.id && c.clock_out)
-      const totalWorkTime = memberClocks.reduce((acc, clock) => {
-        const diff = new Date(clock.clock_out!).getTime() - new Date(clock.clock_in).getTime()
-        return acc + diff / (1000 * 60 * 60)
-      }, 0)
-      const avg = memberClocks.length > 0 ? totalWorkTime / memberClocks.length : 0
-      return { user: member, value: avg, displayValue: `${avg.toFixed(1)}h` }
-    }).sort((a, b) => b.value - a.value)
+    return team.members
+      .map((member) => {
+        const memberClocks = teamClocks.filter((c) => c.user_id === member.id && c.clock_out)
+        const totalWorkTime = memberClocks.reduce((acc, clock) => {
+          const diff = new Date(clock.clock_out!).getTime() - new Date(clock.clock_in).getTime()
+          return acc + diff / (1000 * 60 * 60)
+        }, 0)
+        const avg = memberClocks.length > 0 ? totalWorkTime / memberClocks.length : 0
+        return { user: member, value: avg, displayValue: `${avg.toFixed(1)}h` }
+      })
+      .sort((a, b) => b.value - a.value)
   }, [team, teamClocks])
 
   const calculateTeamMemberLateTime = useCallback(() => {
     if (!team) return []
-    return team.members.map((member) => {
-      const memberClocks = teamClocks.filter((c) => {
-        if (c.user_id !== member.id) return false
-        const clockInTime = new Date(c.clock_in)
-        return clockInTime.getHours() > 9 || (clockInTime.getHours() === 9 && clockInTime.getMinutes() > 0)
+    return team.members
+      .map((member) => {
+        const memberClocks = teamClocks.filter((c) => {
+          if (c.user_id !== member.id) return false
+          const clockInTime = new Date(c.clock_in)
+          return (
+            clockInTime.getHours() > 9 ||
+            (clockInTime.getHours() === 9 && clockInTime.getMinutes() > 0)
+          )
+        })
+        const totalLateTime = memberClocks.reduce((acc, clock) => {
+          const clockInTime = new Date(clock.clock_in)
+          const scheduledStart = new Date(clockInTime)
+          scheduledStart.setHours(9, 0, 0, 0)
+          return acc + (clockInTime.getTime() - scheduledStart.getTime()) / (1000 * 60)
+        }, 0)
+        const avg = memberClocks.length > 0 ? totalLateTime / memberClocks.length : 0
+        return { user: member, value: avg, displayValue: `${avg.toFixed(0)} min` }
       })
-      const totalLateTime = memberClocks.reduce((acc, clock) => {
-        const clockInTime = new Date(clock.clock_in)
-        const scheduledStart = new Date(clockInTime)
-        scheduledStart.setHours(9, 0, 0, 0)
-        return acc + (clockInTime.getTime() - scheduledStart.getTime()) / (1000 * 60)
-      }, 0)
-      const avg = memberClocks.length > 0 ? totalLateTime / memberClocks.length : 0
-      return { user: member, value: avg, displayValue: `${avg.toFixed(0)} min` }
-    }).sort((a, b) => b.value - a.value)
+      .sort((a, b) => b.value - a.value)
   }, [team, teamClocks])
 
   const calculateTeamMemberOvertime = useCallback(() => {
     if (!team) return []
-    return team.members.map((member) => {
-      const memberClocks = teamClocks.filter((c) => {
-        if (c.user_id !== member.id || !c.clock_out) return false
-        const clockOutTime = new Date(c.clock_out)
-        return clockOutTime.getHours() > 17 || (clockOutTime.getHours() === 17 && clockOutTime.getMinutes() > 0)
+    return team.members
+      .map((member) => {
+        const memberClocks = teamClocks.filter((c) => {
+          if (c.user_id !== member.id || !c.clock_out) return false
+          const clockOutTime = new Date(c.clock_out)
+          return (
+            clockOutTime.getHours() > 17 ||
+            (clockOutTime.getHours() === 17 && clockOutTime.getMinutes() > 0)
+          )
+        })
+        const totalOvertime = memberClocks.reduce((acc, clock) => {
+          const clockOutTime = new Date(clock.clock_out!)
+          const scheduledEnd = new Date(clockOutTime)
+          scheduledEnd.setHours(17, 0, 0, 0)
+          return acc + (clockOutTime.getTime() - scheduledEnd.getTime()) / (1000 * 60 * 60)
+        }, 0)
+        const avg = memberClocks.length > 0 ? totalOvertime / memberClocks.length : 0
+        return { user: member, value: avg, displayValue: `${avg.toFixed(1)}h` }
       })
-      const totalOvertime = memberClocks.reduce((acc, clock) => {
-        const clockOutTime = new Date(clock.clock_out!)
-        const scheduledEnd = new Date(clockOutTime)
-        scheduledEnd.setHours(17, 0, 0, 0)
-        return acc + (clockOutTime.getTime() - scheduledEnd.getTime()) / (1000 * 60 * 60)
-      }, 0)
-      const avg = memberClocks.length > 0 ? totalOvertime / memberClocks.length : 0
-      return { user: member, value: avg, displayValue: `${avg.toFixed(1)}h` }
-    }).sort((a, b) => b.value - a.value)
+      .sort((a, b) => b.value - a.value)
   }, [team, teamClocks])
 
   // Recent clocks for display - memoized
-  const recentManagerClocks = useMemo(
-    () => managerClocksList.slice(0, 5),
-    [managerClocksList]
-  )
+  const recentManagerClocks = useMemo(() => managerClocksList.slice(0, 5), [managerClocksList])
 
   if (!user) return <div>Loading...</div>
 

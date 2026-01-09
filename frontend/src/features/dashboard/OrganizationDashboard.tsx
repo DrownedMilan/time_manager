@@ -7,6 +7,7 @@ import TeamsTable from '../teams/TeamsTable'
 import TeamDetailView from '../teams/TeamDetailView'
 import AddTeamDialog from '../teams/AddTeamDialog'
 import EmployeeEditDialog from '../employees/EmployeeEditDialog'
+import EmployeeDetailView from '../employees/EmployeeDetailView'
 import TeamEditDialog from '../teams/TeamEditDialog'
 import EmployeeRankingDialog from '../employees/EmployeeRankingDialog'
 import ExportDialog from '../../components/common/ExportDialog'
@@ -85,6 +86,8 @@ export default function OrganizationDashboard() {
   const [isAddTeamDialogOpen, setIsAddTeamDialogOpen] = useState(false)
   const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null)
   const [isEmployeeEditOpen, setIsEmployeeEditOpen] = useState(false)
+  const [selectedEmployeeForDetail, setSelectedEmployeeForDetail] = useState<User | null>(null)
+  const [isEmployeeDetailOpen, setIsEmployeeDetailOpen] = useState(false)
   const [editingTeam, setEditingTeam] = useState<Team | null>(null)
   const [isTeamEditOpen, setIsTeamEditOpen] = useState(false)
   const [metricDialogOpen, setMetricDialogOpen] = useState<
@@ -449,6 +452,9 @@ export default function OrganizationDashboard() {
     if (isNew) {
       // Add new user to the list
       setUsers((prevUsers) => [...prevUsers, savedUser])
+      // Set the newly created user as selected so the form switches to edit mode
+      // This prevents trying to create the same user again
+      setSelectedEmployee(savedUser)
     } else {
       // Update existing user in the list
       setUsers((prevUsers) => prevUsers.map((u) => (u.id === savedUser.id ? savedUser : u)))
@@ -660,8 +666,8 @@ export default function OrganizationDashboard() {
         />
       </div>
 
-      {/* Side-by-side layout: Tabs on left, Chart on right */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      {/* Stacked layout: Tabs and Chart one per line */}
+      <div className="grid grid-cols-1 gap-8 mb-8">
         {/* Tabs for different views */}
         <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 max-h-[27rem] flex flex-col overflow-hidden">
           <Tabs defaultValue="teams" className="w-full flex flex-col h-full">
@@ -700,7 +706,14 @@ export default function OrganizationDashboard() {
                   <p className="text-sm text-white/60">{totalUsers} total</p>
                 </div>
                 <div className="overflow-y-auto flex-1">
-                  <UsersTable users={users} onEditUser={handleEditEmployee} />
+                  <UsersTable
+                    users={users}
+                    onEditUser={handleEditEmployee}
+                    onViewDetail={(user) => {
+                      setSelectedEmployeeForDetail(user)
+                      setIsEmployeeDetailOpen(true)
+                    }}
+                  />
                 </div>
               </div>
             </TabsContent>
@@ -800,6 +813,13 @@ export default function OrganizationDashboard() {
         onOpenChange={setIsEmployeeEditOpen}
         onDelete={handleDeleteEmployee}
         onSave={handleSaveEmployee}
+      />
+
+      {/* Employee Detail View */}
+      <EmployeeDetailView
+        user={selectedEmployeeForDetail}
+        open={isEmployeeDetailOpen}
+        onOpenChange={setIsEmployeeDetailOpen}
       />
 
       {/* Team Edit Dialog */}

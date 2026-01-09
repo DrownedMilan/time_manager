@@ -1,22 +1,24 @@
-import { useState } from "react";
+import { useState } from 'react'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "../../components/ui/dialog";
-import { Input } from "../../components/ui/input";
-import { Label } from "../../components/ui/label";
-import { Button } from "../../components/ui/button";
-import { Lock, Eye, EyeOff } from "lucide-react";
-import { toast } from "sonner";
+} from '../../components/ui/dialog'
+import { Input } from '../../components/ui/input'
+import { Label } from '../../components/ui/label'
+import { Button } from '../../components/ui/button'
+import { Lock, Eye, EyeOff } from 'lucide-react'
+import { toast } from 'sonner'
+import { useAuth } from '../../hooks/useAuth'
+import { changePassword } from '../../services/userService'
 
 interface PasswordChangeDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  userName: string;
-  userEmail: string;
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  userName: string
+  userEmail: string
 }
 
 export default function PasswordChangeDialog({
@@ -25,60 +27,89 @@ export default function PasswordChangeDialog({
   userName,
   userEmail,
 }: PasswordChangeDialogProps) {
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { keycloak } = useAuth()
+  const token = keycloak?.token ?? null
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
     // Validation
     if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error("All fields are required");
-      return;
+      toast.error('All fields are required')
+      return
     }
 
     if (newPassword.length < 8) {
-      toast.error("New password must be at least 8 characters long");
-      return;
+      toast.error('New password must be at least 8 characters long')
+      return
     }
 
     if (newPassword !== confirmPassword) {
-      toast.error("New password and confirmation do not match");
-      return;
+      toast.error('New password and confirmation do not match')
+      return
     }
 
     if (currentPassword === newPassword) {
-      toast.error("New password must be different from current password");
-      return;
+      toast.error('New password must be different from current password')
+      return
     }
 
-    // Simulate API call
-    setIsSubmitting(true);
-    setTimeout(() => {
-      setIsSubmitting(false);
-      toast.success("Password changed successfully");
-      handleClose();
-    }, 1000);
-  };
+    if (!token) {
+      toast.error('Authentication token is missing. Please log in again.')
+      return
+    }
+
+    // Call API to change password
+    setIsSubmitting(true)
+    try {
+      await changePassword(
+        {
+          current_password: currentPassword,
+          new_password: newPassword,
+        },
+        token,
+      )
+
+      toast.success('Password changed successfully')
+      handleClose()
+    } catch (error: unknown) {
+      const err = error as { status?: number; message?: string; info?: { detail?: string } }
+      console.error('Failed to change password:', err)
+
+      if (err?.status === 401) {
+        toast.error('Current password is incorrect')
+      } else if (err?.status === 400) {
+        const errorMessage = err?.info?.detail || err?.message || 'Invalid password'
+        toast.error(errorMessage)
+      } else {
+        toast.error('Failed to change password. Please try again.')
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
   const handleClose = () => {
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-    setShowCurrentPassword(false);
-    setShowNewPassword(false);
-    setShowConfirmPassword(false);
-    onOpenChange(false);
-  };
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
+    setShowCurrentPassword(false)
+    setShowNewPassword(false)
+    setShowConfirmPassword(false)
+    onOpenChange(false)
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px] bg-slate-900/95 backdrop-blur-xl border-white/10 text-white">
+      <DialogContent className="max-w-xl w-[95vw] sm:w-full bg-slate-900/95 backdrop-blur-xl border-white/10 text-white">
         <DialogHeader>
           <DialogTitle className="text-white/90">Change Password</DialogTitle>
           <DialogDescription className="text-white/60">
@@ -108,7 +139,7 @@ export default function PasswordChangeDialog({
             <div className="relative">
               <Input
                 id="current-password"
-                type={showCurrentPassword ? "text" : "password"}
+                type={showCurrentPassword ? 'text' : 'password'}
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
                 placeholder="Enter current password"
@@ -119,11 +150,7 @@ export default function PasswordChangeDialog({
                 onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white/90"
               >
-                {showCurrentPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
+                {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -136,7 +163,7 @@ export default function PasswordChangeDialog({
             <div className="relative">
               <Input
                 id="new-password"
-                type={showNewPassword ? "text" : "password"}
+                type={showNewPassword ? 'text' : 'password'}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Enter new password (min. 8 characters)"
@@ -147,11 +174,7 @@ export default function PasswordChangeDialog({
                 onClick={() => setShowNewPassword(!showNewPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white/90"
               >
-                {showNewPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
+                {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -164,7 +187,7 @@ export default function PasswordChangeDialog({
             <div className="relative">
               <Input
                 id="confirm-password"
-                type={showConfirmPassword ? "text" : "password"}
+                type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm new password"
@@ -175,11 +198,7 @@ export default function PasswordChangeDialog({
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-white/60 hover:text-white/90"
               >
-                {showConfirmPassword ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
+                {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
           </div>
@@ -188,13 +207,19 @@ export default function PasswordChangeDialog({
           <div className="backdrop-blur-xl bg-blue-500/10 border border-blue-400/20 rounded-lg p-3">
             <p className="text-xs text-white/70 mb-2">Password requirements:</p>
             <ul className="text-xs text-white/60 space-y-1">
-              <li className={newPassword.length >= 8 ? "text-green-400" : ""}>
+              <li className={newPassword.length >= 8 ? 'text-green-400' : ''}>
                 • At least 8 characters long
               </li>
-              <li className={newPassword !== currentPassword && newPassword ? "text-green-400" : ""}>
+              <li
+                className={newPassword !== currentPassword && newPassword ? 'text-green-400' : ''}
+              >
                 • Different from current password
               </li>
-              <li className={newPassword === confirmPassword && confirmPassword ? "text-green-400" : ""}>
+              <li
+                className={
+                  newPassword === confirmPassword && confirmPassword ? 'text-green-400' : ''
+                }
+              >
                 • Passwords match
               </li>
             </ul>
@@ -213,14 +238,14 @@ export default function PasswordChangeDialog({
             </Button>
             <Button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
+              className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Changing..." : "Change Password"}
+              {isSubmitting ? 'Changing...' : 'Change Password'}
             </Button>
           </div>
         </form>
       </DialogContent>
     </Dialog>
-  );
+  )
 }

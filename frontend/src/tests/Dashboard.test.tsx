@@ -113,11 +113,7 @@ vi.mock('@/components/ui/dialog', () => ({
 }))
 
 const renderWithUser = (node: React.ReactNode, user = mockUsers[2]) =>
-  render(
-    <UserContext.Provider value={{ user, setUser: vi.fn() }}>
-      {node}
-    </UserContext.Provider>,
-  )
+  render(<UserContext.Provider value={{ user, setUser: vi.fn() }}>{node}</UserContext.Provider>)
 
 describe('Dashboard pages', () => {
   it('renders employee dashboard with user data', async () => {

@@ -50,7 +50,10 @@ export default function Login(props: PageProps<Extract<KcContext, { pageId: 'log
 
             {/* Global error */}
             {globalMessage && (
-              <div className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-200 text-sm">
+              <div
+                className="mb-4 p-3 bg-red-500/20 border border-red-500/30 rounded-lg text-red-200 text-sm"
+                style={{ color: 'rgb(252, 165, 165)' }}
+              >
                 {globalMessage}
               </div>
             )}
@@ -76,7 +79,9 @@ export default function Login(props: PageProps<Extract<KcContext, { pageId: 'log
                 </div>
 
                 {messagesPerField.existsError('username') && (
-                  <p className="text-red-300 text-xs">{messagesPerField.get('username')}</p>
+                  <p className="text-red-300 text-xs" style={{ color: 'rgb(252, 165, 165)' }}>
+                    {messagesPerField.get('username')}
+                  </p>
                 )}
               </div>
 
@@ -99,7 +104,9 @@ export default function Login(props: PageProps<Extract<KcContext, { pageId: 'log
                 </div>
 
                 {messagesPerField.existsError('password') && (
-                  <p className="text-red-300 text-xs">{messagesPerField.get('password')}</p>
+                  <p className="text-red-300 text-xs" style={{ color: 'rgb(252, 165, 165)' }}>
+                    {messagesPerField.get('password')}
+                  </p>
                 )}
               </div>
 

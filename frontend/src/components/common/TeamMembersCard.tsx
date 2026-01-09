@@ -3,8 +3,9 @@ import { Avatar, AvatarFallback } from '../../components/ui/avatar'
 import { Badge } from '../../components/ui/badge'
 import { type UserMinimal, type User, UserRole, parseUserRole } from '@/types/user'
 import { Users } from 'lucide-react'
-import { mockUsers } from '../../lib/mockData'
 import EmployeeDetailView from '../../features/employees/EmployeeDetailView'
+import { useAuth } from '@/hooks/useAuth'
+import { getUserById } from '@/services/userService'
 
 interface TeamMembersCardProps {
   members: UserMinimal[]
@@ -12,15 +13,38 @@ interface TeamMembersCardProps {
 }
 
 export default function TeamMembersCard({ members, title = 'Team Members' }: TeamMembersCardProps) {
+  const { keycloak } = useAuth()
+  const token = keycloak?.token ?? null
   const [selectedEmployee, setSelectedEmployee] = useState<User | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [isLoadingUser, setIsLoadingUser] = useState(false)
 
-  const handleMemberClick = (member: UserMinimal) => {
-    // Find the full user object from mockUsers
-    const fullUser = mockUsers.find((u) => u.id === member.id)
-    if (fullUser) {
+  const handleMemberClick = async (member: UserMinimal) => {
+    if (!token) return
+
+    setIsLoadingUser(true)
+    try {
+      // Fetch full user data from API
+      const fullUser = await getUserById(member.id, token)
       setSelectedEmployee(fullUser)
       setIsDetailOpen(true)
+    } catch (error) {
+      console.error('Failed to fetch user details:', error)
+      // Fallback: create a minimal User object from UserMinimal
+      const minimalUser: User = {
+        id: member.id,
+        first_name: member.first_name,
+        last_name: member.last_name,
+        email: member.email,
+        phone_number: member.phone_number || null,
+        role: member.role,
+        created_at: new Date().toISOString(),
+        team: null,
+      }
+      setSelectedEmployee(minimalUser)
+      setIsDetailOpen(true)
+    } finally {
+      setIsLoadingUser(false)
     }
   }
   const getInitials = (firstName: string, lastName: string) => {

@@ -54,7 +54,7 @@ interface TeamEditDialogProps {
     addedMemberIds: number[],
     removedMemberIds: number[],
     newManagerId: number | null,
-    oldManagerId: number | null
+    oldManagerId: number | null,
   ) => void
   onSave?: () => void // Keep for backward compatibility
 }
@@ -130,7 +130,6 @@ export default function TeamEditDialog({
       setDescription(team.description)
       setManagerId(team.manager_id?.toString() || '')
       setMembers([...team.members])
-      
       // Store original values
       originalManagerId.current = team.manager_id
       originalMemberIds.current = team.members.map((m) => m.id)
@@ -159,14 +158,12 @@ export default function TeamEditDialog({
         }
         setMembers([...members, newMember])
         setSelectedEmployeeId('')
-        
         // Track addition
         if (!originalMemberIds.current.includes(employee.id)) {
           addedMemberIds.current.push(employee.id)
         }
         // Remove from removed list if re-added
         removedMemberIds.current = removedMemberIds.current.filter((id) => id !== employee.id)
-        
         toast.success(`${employee.first_name} ${employee.last_name} added to team`)
       } catch (error) {
         console.error('Failed to add member:', error)
@@ -182,14 +179,12 @@ export default function TeamEditDialog({
     try {
       await removeMemberFromTeam(team.id, memberId, token)
       setMembers(members.filter((m) => m.id !== memberId))
-      
       // Track removal
       if (originalMemberIds.current.includes(memberId)) {
         removedMemberIds.current.push(memberId)
       }
       // Remove from added list if removed before save
       addedMemberIds.current = addedMemberIds.current.filter((id) => id !== memberId)
-      
       if (member) {
         toast.success(`${member.first_name} ${member.last_name} removed from team`)
       }
@@ -215,7 +210,6 @@ export default function TeamEditDialog({
     setIsSubmitting(true)
     try {
       const newManagerId = managerId && managerId !== 'none' ? parseInt(managerId) : null
-      
       await updateTeam(
         {
           name: name.trim(),
@@ -225,7 +219,6 @@ export default function TeamEditDialog({
         team.id,
         token,
       )
-      
       // Build the updated team object
       const newManager = newManagerId ? users.find((u) => u.id === newManagerId) : null
       const updatedTeam: Team = {
@@ -243,10 +236,8 @@ export default function TeamEditDialog({
           : null,
         members: members,
       }
-      
       toast.success(`Team "${name}" updated successfully!`)
       onOpenChange(false)
-      
       // Notify parent with all changes
       if (onTeamUpdated) {
         onTeamUpdated(

@@ -6,6 +6,7 @@ import DefaultPage from 'keycloakify/login/DefaultPage'
 import Template from './Template'
 
 import Login from './pages/Login'
+import UpdatePassword from './pages/UpdatePassword'
 
 const UserProfileFormFields = lazy(() => import('keycloakify/login/UserProfileFormFields'))
 
@@ -18,6 +19,13 @@ export default function KcPage(props: { kcContext: KcContext }) {
   return (
     <Suspense fallback={null}>
       {(() => {
+        // Check if this is an update password required action
+        const isUpdatePassword =
+          kcContext.pageId === 'update-password.ftl' ||
+          (kcContext as any).pageId === 'update-password.ftl' ||
+          (kcContext as any).url?.loginAction?.includes('UPDATE_PASSWORD') ||
+          (kcContext as any).execution === 'UPDATE_PASSWORD'
+
         switch (kcContext.pageId) {
           case 'login.ftl':
             return (
@@ -30,7 +38,30 @@ export default function KcPage(props: { kcContext: KcContext }) {
               />
             )
 
+          case 'update-password.ftl':
+            return (
+              <UpdatePassword
+                kcContext={kcContext as any}
+                i18n={i18n as any}
+                Template={Template as any}
+                classes={classes as any}
+                doUseDefaultCss={false}
+              />
+            )
+
           default:
+            // Fallback: check if it's an update password page by URL or execution
+            if (isUpdatePassword) {
+              return (
+                <UpdatePassword
+                  kcContext={kcContext as any}
+                  i18n={i18n as any}
+                  Template={Template as any}
+                  classes={classes as any}
+                  doUseDefaultCss={false}
+                />
+              )
+            }
             return (
               <DefaultPage
                 kcContext={kcContext}

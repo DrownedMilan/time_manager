@@ -59,21 +59,30 @@ export default function EmployeeEditDialog({
   const [passwordCopied, setPasswordCopied] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-
-  // Generate a secure temporary password
-  const generateTempPassword = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
-    const special = '@#$%&'
-    let password = 'Bank'
-    password += new Date().getFullYear()
-    password += special.charAt(Math.floor(Math.random() * special.length))
-    for (let i = 0; i < 5; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return password
-  }
+  const [showTempPassword, setShowTempPassword] = useState(false)
+  const [createdUserId, setCreatedUserId] = useState<number | null>(null)
 
   useEffect(() => {
+    // Only reset form when dialog opens/closes, not when user changes
+    if (!open) {
+      // Reset when dialog closes
+      setFirstName('')
+      setLastName('')
+      setEmail('')
+      setPhoneNumber('')
+      setRole(UserRole.EMPLOYEE)
+      setTempPassword('')
+      setPasswordCopied(false)
+      setShowTempPassword(false)
+      setCreatedUserId(null)
+      return
+    }
+
+    // Don't reset if we just created a user and are showing the temp password
+    if (showTempPassword && createdUserId) {
+      return
+    }
+
     if (user) {
       setFirstName(user.first_name)
       setLastName(user.last_name)
@@ -82,6 +91,8 @@ export default function EmployeeEditDialog({
       setRole(user.role)
       setTempPassword('') // No password for editing
       setPasswordCopied(false)
+      setShowTempPassword(false)
+      setCreatedUserId(null)
     } else {
       // Reset form for new employee
       setFirstName('')
@@ -89,12 +100,24 @@ export default function EmployeeEditDialog({
       setEmail('')
       setPhoneNumber('')
       setRole(UserRole.EMPLOYEE)
-      setTempPassword(generateTempPassword()) // Generate password for new employee
+      setTempPassword('') // Will be set by backend after creation
       setPasswordCopied(false)
+      setShowTempPassword(false)
+      setCreatedUserId(null)
     }
-  }, [user, open])
+  }, [user, open, showTempPassword, createdUserId])
 
   const handleSave = async () => {
+    console.log('handleSave called', {
+      user,
+      firstName,
+      lastName,
+      email,
+      phoneNumber,
+      role,
+      token: token ? 'present' : 'missing',
+    })
+
     // Validation
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !phoneNumber.trim()) {
       toast.error('Please fill in all fields')
@@ -108,6 +131,11 @@ export default function EmployeeEditDialog({
       return
     }
 
+    if (!token) {
+      toast.error('Authentication token is missing. Please log in again.')
+      return
+    }
+
     setIsSubmitting(true)
 
     try {
@@ -115,6 +143,7 @@ export default function EmployeeEditDialog({
 
       if (user) {
         // Update existing user
+        console.log('Updating user:', user.id)
         savedUser = await updateUser(
           user.id,
           {
@@ -125,6 +154,7 @@ export default function EmployeeEditDialog({
           },
           token,
         )
+        console.log('User updated successfully:', savedUser)
         toast.success(`Employee ${firstName} ${lastName} updated successfully!`)
         onOpenChange(false)
         if (onSave) {
@@ -137,22 +167,53 @@ export default function EmployeeEditDialog({
           last_name: lastName.trim(),
           email: email.trim(),
           phone_number: phoneNumber.trim(),
-          keycloak_id: `manual-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          keycloak_id: '', // Backend will create in Keycloak
           realm_roles: [role.toLowerCase()],
         }
-        savedUser = await createUser(payload, token)
+        console.log('Creating user with payload:', payload)
+        const result = await createUser(payload, token)
+        console.log('User created successfully:', result)
+        savedUser = result.user
+
+        // Set temporary password if returned from backend
+        if (result.tempPassword) {
+          setTempPassword(result.tempPassword)
+          setShowTempPassword(true)
+          setCreatedUserId(savedUser.id) // Track that we just created this user
+        }
+
         toast.success(`Employee ${firstName} ${lastName} added successfully!`)
-        onOpenChange(false)
+
+        // Update the user list in parent component
         if (onSave) {
           onSave(savedUser, true)
         }
+
+        // Update the user state to the newly created user so the form shows as "editing" mode
+        // This prevents the dialog from resetting when onSave updates the parent state
+        // Keep dialog open to show temp password - don't close it automatically
+        // User can close manually after copying the password
       }
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as { status?: number; message?: string; info?: { detail?: string } }
       console.error('Failed to save employee:', error)
+      console.error('Error details:', {
+        status: error?.status,
+        message: error?.message,
+        info: error?.info,
+      })
+
       if (error?.status === 409) {
         toast.error('An employee with this email or phone number already exists')
+      } else if (error?.status === 403) {
+        toast.error(
+          'You do not have permission to create users. Only organization admins can create users.',
+        )
+      } else if (error?.status === 401) {
+        toast.error('Authentication failed. Please log in again.')
       } else {
-        toast.error(`Failed to ${user ? 'update' : 'create'} employee`)
+        const errorMessage = error?.info?.detail || error?.message || 'Unknown error'
+        toast.error(`Failed to ${user ? 'update' : 'create'} employee: ${errorMessage}`)
       }
     } finally {
       setIsSubmitting(false)
@@ -160,6 +221,9 @@ export default function EmployeeEditDialog({
   }
 
   const handleCancel = () => {
+    setShowTempPassword(false)
+    setTempPassword('')
+    setCreatedUserId(null)
     onOpenChange(false)
   }
 
@@ -177,7 +241,7 @@ export default function EmployeeEditDialog({
       setPasswordCopied(true)
       toast.success('Password copied to clipboard!')
       setTimeout(() => setPasswordCopied(false), 2000)
-    } catch (error: unknown) {
+    } catch {
       toast.error('Failed to copy password')
     }
   }
@@ -187,7 +251,7 @@ export default function EmployeeEditDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md bg-slate-950 border-white/10">
+        <DialogContent className="max-w-xl w-[95vw] sm:w-full bg-slate-950 border-white/10">
           <DialogHeader>
             <DialogTitle className="text-white/90">
               {user ? 'Edit Employee' : 'Add New Employee'}
@@ -293,9 +357,9 @@ export default function EmployeeEditDialog({
               )}
             </div>
 
-            {/* Temporary Password (only for new employees) */}
-            {!user && tempPassword && (
-              <div className="space-y-2">
+            {/* Temporary Password (only for new employees or after creation) */}
+            {showTempPassword && tempPassword && (
+              <div className="space-y-2 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                 <Label htmlFor="tempPassword" className="text-white/80">
                   Temporary Password
                 </Label>
@@ -311,7 +375,7 @@ export default function EmployeeEditDialog({
                     onClick={copyPassword}
                     size="sm"
                     variant="outline"
-                    className="bg-white/5 border-white/20 text-white hover:bg-white/10 shrink-0"
+                    className="bg-white/5 border-white/20 text-white hover:bg-white/10 shrink-0 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={isSubmitting}
                   >
                     {passwordCopied ? (
@@ -321,8 +385,9 @@ export default function EmployeeEditDialog({
                     )}
                   </Button>
                 </div>
-                <p className="text-xs text-blue-400">
-                  💡 This password will be required for the employee's first login
+                <p className="text-xs text-blue-400 mt-2">
+                  💡 This temporary password must be used for the employee's first login. Keycloak
+                  will automatically prompt them to change it.
                 </p>
               </div>
             )}
@@ -335,7 +400,7 @@ export default function EmployeeEditDialog({
                   onClick={() => setShowDeleteConfirm(true)}
                   size="sm"
                   variant="outline"
-                  className="bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-red-300"
+                  className="bg-red-500/10 border-red-500/30 text-red-400 hover:bg-red-500/20 hover:text-red-300 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={isSubmitting}
                 >
                   <Trash2 className="w-4 h-4" />
@@ -351,7 +416,7 @@ export default function EmployeeEditDialog({
                   onClick={handleCancel}
                   size="sm"
                   variant="outline"
-                  className="bg-white/5 border-white/20 text-white hover:bg-white/10"
+                  className="bg-white/5 border-white/20 text-white hover:bg-white/10 cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   disabled={isSubmitting}
                 >
                   <XCircle className="w-4 h-4" />
@@ -360,13 +425,18 @@ export default function EmployeeEditDialog({
                 <Button
                   onClick={handleSave}
                   size="sm"
-                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white"
-                  disabled={isSubmitting}
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={isSubmitting || (showTempPassword && createdUserId !== null)}
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
                       Saving...
+                    </>
+                  ) : showTempPassword && createdUserId !== null ? (
+                    <>
+                      <CheckCheck className="w-4 h-4" />
+                      User Created
                     </>
                   ) : (
                     <>
@@ -396,12 +466,12 @@ export default function EmployeeEditDialog({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="bg-white/5 border-white/20 text-white hover:bg-white/10">
+            <AlertDialogCancel className="bg-white/5 border-white/20 text-white hover:bg-white/10 cursor-pointer transition-colors">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-red-500 hover:bg-red-600 text-white"
+              className="bg-red-500 hover:bg-red-600 text-white cursor-pointer transition-colors"
             >
               Delete Employee
             </AlertDialogAction>
