@@ -24,6 +24,7 @@ interface UserApiResponse {
   realm_roles: string[]
   team_id: number | null
   team: { id: number; name: string } | null // Backend now returns this
+  team: { id: number; name: string } | null // Backend now returns this
   managed_team?: { id: number; name: string } | null
   temp_password?: string | null // Only returned on creation
 }
@@ -47,6 +48,7 @@ function parseUser(apiUser: UserApiResponse): User {
     role: parseUserRole(apiUser.realm_roles || []),
     created_at: apiUser.created_at,
     team: apiUser.team ?? null, // Use team from API directly
+    managed_team: apiUser.managed_team ?? null,
   }
 }
 

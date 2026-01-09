@@ -180,16 +180,18 @@ class UserPublic(SQLModel):
     keycloak_id: str
     realm_roles: List[str]
     team_id: Optional[int] = None
-    team: Optional[TeamBasic] = None  # Add team info
+    team: Optional[TeamBasic] = None
+    managed_team: Optional[TeamBasic] = None  # Add this
     temp_password: Optional[str] = None  # Only returned on creation
 
 
 class UserMinimal(SQLModel):
-	id: int
-	first_name: str
-	last_name: str
-	email: EmailStr
-	phone_number: Optional[str] = None
+    id: int
+    first_name: str
+    last_name: str
+    email: EmailStr
+    phone_number: Optional[str] = None
+    realm_roles: List[str] = []
 
 
 class UserCreate(SQLModel):
