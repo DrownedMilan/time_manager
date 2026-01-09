@@ -37,6 +37,9 @@ import { getTeams } from '@/services/teamService'
 import { getClocks } from '@/services/clockService'
 import { toast } from 'sonner'
 
+// ✅ KPI API import (same as Organization page)
+import { getKpiSummary, type KPISummary } from '@/lib/kpiService'
+
 export default function ManagerDashboard() {
   const { user } = useUser()
   const { keycloak } = useAuth()
@@ -51,6 +54,10 @@ export default function ManagerDashboard() {
   >(null)
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('employee')
+
+  // ✅ KPI API states (same as Organization page)
+  const [isKpiDownloading, setIsKpiDownloading] = useState(false)
+  const [kpiApi, setKpiApi] = useState<KPISummary | null>(null)
 
   // Fetch data from API
   const fetchData = useCallback(async () => {
@@ -325,6 +332,67 @@ export default function ManagerDashboard() {
     fetchData()
   }
 
+  // =====================
+  // CSV Export helpers (same as Organization page)
+  // =====================
+  const CSV_SEPARATOR = ';'
+  const isoDate = () => new Date().toISOString().slice(0, 10)
+
+  const escapeCsv = (value: any) => {
+    const s = String(value ?? '')
+    if (/[;"\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+    return s
+  }
+
+  const rowsToCsvExcel = (rows: Record<string, any>[]) => {
+    if (!rows.length) return '\uFEFF' + `sep=${CSV_SEPARATOR}\n`
+
+    const headers = Object.keys(rows[0])
+    const headerLine = headers.map(escapeCsv).join(CSV_SEPARATOR)
+    const dataLines = rows.map((row) => headers.map((h) => escapeCsv(row[h])).join(CSV_SEPARATOR))
+
+    return '\uFEFF' + `sep=${CSV_SEPARATOR}\n` + [headerLine, ...dataLines].join('\n')
+  }
+
+  const downloadCsvExcel = (filename: string, rows: Record<string, any>[]) => {
+    const csv = rowsToCsvExcel(rows)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+
+    URL.revokeObjectURL(url)
+  }
+
+  // ✅ KPI API download (same behavior as Organization page)
+  const handleDownloadKpiCsv = async () => {
+    if (!token) {
+      toast.error('Missing auth token')
+      return
+    }
+
+    setIsKpiDownloading(true)
+    try {
+      const summary = await getKpiSummary(token)
+      setKpiApi(summary)
+
+      const today = isoDate()
+      downloadCsvExcel(`kpi-api-${today}.csv`, [summary])
+
+      toast.success('KPI (API) exported successfully!')
+    } catch (error) {
+      console.error('Failed to export KPI (API):', error)
+      toast.error('Failed to export KPI (API)')
+    } finally {
+      setIsKpiDownloading(false)
+    }
+  }
+
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8">
       <Tabs
@@ -384,6 +452,14 @@ export default function ManagerDashboard() {
               </div>
             </div>
           </div>
+
+          {/* ✅ KPI API info (optional display, same idea as Organization page) */}
+          {kpiApi && (
+            <div className="mb-4 text-sm text-white/60">
+              KPI API → Employees: {kpiApi.totalEmployees} · Teams: {kpiApi.totalTeams} · Week Hours:{' '}
+              {kpiApi.totalHoursThisWeek}
+            </div>
+          )}
 
           {/* Personal Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -534,12 +610,24 @@ export default function ManagerDashboard() {
           {/* Team Management Header */}
           <div className="mb-6 flex items-center justify-between">
             <h3 className="text-white/90">{team ? team.name : 'No team assigned'}</h3>
+
+            {/* ✅ Replace existing export behavior with KPI API CSV export (same as Organization page) */}
             <Button
-              onClick={() => setIsExportDialogOpen(true)}
+              onClick={handleDownloadKpiCsv}
+              disabled={isKpiDownloading}
               className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
             >
-              <Download className="w-4 h-4 mr-2" />
-              Export as CSV
+              {isKpiDownloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Downloading KPI...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export as CSV
+                </>
+              )}
             </Button>
           </div>
 
