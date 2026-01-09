@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 from app.database import get_session
 from app.auth import get_current_user
 from app.models import (
@@ -85,7 +86,11 @@ async def create_user(
 # Read all users
 @router.get("/", response_model=list[UserPublic])
 async def read_users(session: Session = Depends(get_session)) -> list[UserPublic]:
-    db_users = session.exec(select(User)).all()
+    statement = select(User).options(
+        selectinload(User.team),
+        selectinload(User.managed_team)
+    )
+    db_users = session.exec(statement).all()
     
     result = []
     for u in db_users:
@@ -99,7 +104,8 @@ async def read_users(session: Session = Depends(get_session)) -> list[UserPublic
             keycloak_id=u.keycloak_id,
             realm_roles=u.realm_roles,
             team_id=u.team_id,
-            team=TeamBasic(id=u.team.id, name=u.team.name) if u.team else None
+            team=TeamBasic(id=u.team.id, name=u.team.name) if u.team else None,
+            managed_team=TeamBasic(id=u.managed_team.id, name=u.managed_team.name) if u.managed_team else None
         )
         result.append(user_data)
     

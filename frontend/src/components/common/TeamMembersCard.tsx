@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Avatar, AvatarFallback } from '../../components/ui/avatar'
 import { Badge } from '../../components/ui/badge'
-import { type UserMinimal, type User, UserRole } from '@/types/user'
+import { type UserMinimal, type User, UserRole, parseUserRole } from '@/types/user'
 import { Users } from 'lucide-react'
 import { mockUsers } from '../../lib/mockData'
 import EmployeeDetailView from '../../features/employees/EmployeeDetailView'
@@ -38,6 +38,13 @@ export default function TeamMembersCard({ members, title = 'Team Members' }: Tea
     }
   }
 
+  // Helper to get role from member (handles both role and realm_roles)
+  const getMemberRole = (member: UserMinimal): UserRole => {
+    if (member.role) return member.role
+    if (member.realm_roles) return parseUserRole(member.realm_roles)
+    return UserRole.EMPLOYEE
+  }
+
   if (members.length === 0) {
     return (
       <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-8 text-center">
@@ -52,28 +59,31 @@ export default function TeamMembersCard({ members, title = 'Team Members' }: Tea
       <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 h-full flex flex-col">
         <h3 className="text-white/90 mb-4">{title}</h3>
         <div className="space-y-3 flex-1 overflow-auto">
-          {members.map((member) => (
-            <div
-              key={member.id}
-              onClick={() => handleMemberClick(member)}
-              className="flex items-center gap-4 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5 cursor-pointer"
-            >
-              <Avatar className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-400">
-                <AvatarFallback className="bg-transparent text-white text-sm">
-                  {getInitials(member.first_name, member.last_name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-white/90 text-sm truncate">
-                  {member.first_name} {member.last_name}
-                </p>
-                <p className="text-white/60 text-xs truncate">{member.email}</p>
+          {members.map((member) => {
+            const role = getMemberRole(member)
+            return (
+              <div
+                key={member.id}
+                onClick={() => handleMemberClick(member)}
+                className="flex items-center gap-4 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/5 cursor-pointer"
+              >
+                <Avatar className="w-10 h-10 bg-gradient-to-br from-blue-400 to-cyan-400">
+                  <AvatarFallback className="bg-transparent text-white text-sm">
+                    {getInitials(member.first_name, member.last_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white/90 text-sm truncate">
+                    {member.first_name} {member.last_name}
+                  </p>
+                  <p className="text-white/60 text-xs truncate">{member.email}</p>
+                </div>
+                <Badge variant="outline" className={`text-xs ${getRoleBadgeColor(role)}`}>
+                  {role}
+                </Badge>
               </div>
-              <Badge variant="outline" className={`text-xs ${getRoleBadgeColor(member.role)}`}>
-                {member.role}
-              </Badge>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 

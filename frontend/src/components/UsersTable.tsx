@@ -108,7 +108,11 @@ export default function UsersTable({ users, onEditUser }: UsersTableProps) {
                     All Roles
                   </SelectItem>
                   {uniqueRoles.map((role) => (
-                    <SelectItem key={role || 'unknown'} value={role || 'unknown'} className="text-white">
+                    <SelectItem
+                      key={role || 'unknown'}
+                      value={role || 'unknown'}
+                      className="text-white"
+                    >
                       {role || 'Unknown'}
                     </SelectItem>
                   ))}
