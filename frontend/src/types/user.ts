@@ -25,7 +25,7 @@ export interface UserApiResponse {
   keycloak_id: string
   realm_roles: string[]
   team?: TeamMinimal | null
-  managed_team?: TeamMinimal | null
+  managed_team?: TeamMinimal | null  // Add this
 }
 
 export interface TeamMinimal {
@@ -53,14 +53,8 @@ export interface UserMinimal {
   last_name: string
   email: string
   phone_number: string | null
-  role: UserRole
-}
-
-export interface UserUpdatePayload {
-  first_name: string | null
-  last_name: string | null
-  email: string
-  phone_number: string | null
+  realm_roles?: string[]  // From backend
+  role?: UserRole         // Parsed role (optional since it may come from realm_roles)
 }
 
 // Helper to convert realm_roles to UserRole
@@ -82,6 +76,15 @@ export function parseUser(apiUser: UserApiResponse): User {
     role: parseUserRole(apiUser.realm_roles),
     created_at: apiUser.created_at,
     team: apiUser.team ?? null,
-    managed_team: apiUser.managed_team ?? null,
+    managed_team: apiUser.managed_team ?? null,  // Add this
+  }
+}
+
+// Helper to parse UserMinimal with role derived from realm_roles
+export function parseUserMinimal(user: UserMinimal): UserMinimal {
+  if (user.role) return user // Already has role
+  return {
+    ...user,
+    role: user.realm_roles ? parseUserRole(user.realm_roles) : UserRole.EMPLOYEE,
   }
 }

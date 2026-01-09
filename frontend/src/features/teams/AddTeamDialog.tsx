@@ -20,7 +20,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { useAuth } from '@/hooks/useAuth'
 import { getUsers } from '@/services/userService'
-import { createTeam, addMemberToTeam } from '@/services/teamService'
+import { getTeams, createTeam, addMemberToTeam } from '@/services/teamService'
 import type { User } from '@/types/user'
 import { UserRole as UserRoleEnum } from '@/types/user'
 import type { Team } from '@/types/team'
@@ -30,7 +30,7 @@ import { Loader2 } from 'lucide-react'
 interface AddTeamDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onTeamCreated?: (team: Team) => void // Updated signature
+  onTeamCreated?: (team: Team, memberIds: number[], managerId: number) => void
 }
 
 export default function AddTeamDialog({ open, onOpenChange, onTeamCreated }: AddTeamDialogProps) {
@@ -43,32 +43,39 @@ export default function AddTeamDialog({ open, onOpenChange, onTeamCreated }: Add
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState<number[]>([])
 
   const [users, setUsers] = useState<User[]>([])
+  const [teams, setTeams] = useState<Team[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Fetch users when dialog opens
+  // Fetch users and teams when dialog opens
   useEffect(() => {
     if (open) {
-      fetchUsers()
+      fetchData()
     }
   }, [open, token])
 
-  const fetchUsers = async () => {
+  const fetchData = async () => {
     setIsLoadingUsers(true)
     try {
-      const fetchedUsers = await getUsers(token)
+      const [fetchedUsers, fetchedTeams] = await Promise.all([getUsers(token), getTeams(token)])
       setUsers(fetchedUsers)
+      setTeams(fetchedTeams)
     } catch (error) {
-      console.error('Failed to fetch users:', error)
-      toast.error('Failed to load users')
+      console.error('Failed to fetch data:', error)
+      toast.error('Failed to load data')
     } finally {
       setIsLoadingUsers(false)
     }
   }
 
+  // Get manager IDs that are already assigned to a team
+  const assignedManagerIds = new Set(
+    teams.filter((t) => t.manager_id !== null).map((t) => t.manager_id!),
+  )
+
   // Get available managers (users with Manager role who don't already manage a team)
   const availableManagers = users.filter((user) => {
-    return user.role === UserRoleEnum.MANAGER
+    return user.role === UserRoleEnum.MANAGER && !assignedManagerIds.has(user.id)
   })
 
   // Get unassigned employees (users without a team)
@@ -98,20 +105,24 @@ export default function AddTeamDialog({ open, onOpenChange, onTeamCreated }: Add
     setIsSubmitting(true)
 
     try {
+      const managerId = parseInt(selectedManagerId)
+      
       // 1. Create the team
       const newTeam = await createTeam(
         {
           name: teamName.trim(),
           description: description.trim(),
-          manager_id: parseInt(selectedManagerId),
+          manager_id: managerId,
         },
         token,
       )
 
       // 2. Add selected employees to the team
+      const addedMemberIds: number[] = []
       for (const employeeId of selectedEmployeeIds) {
         try {
           await addMemberToTeam(newTeam.id, employeeId, token)
+          addedMemberIds.push(employeeId)
         } catch (error) {
           console.error(`Failed to add employee ${employeeId} to team:`, error)
           toast.error(`Failed to add some team members`)
@@ -124,9 +135,9 @@ export default function AddTeamDialog({ open, onOpenChange, onTeamCreated }: Add
       resetForm()
       onOpenChange(false)
 
-      // Notify parent with the new team
+      // Notify parent with the new team, member IDs, and manager ID
       if (onTeamCreated) {
-        onTeamCreated(newTeam)
+        onTeamCreated(newTeam, addedMemberIds, managerId)
       }
     } catch (error: any) {
       console.error('Failed to create team:', error)

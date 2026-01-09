@@ -23,13 +23,13 @@ interface UserApiResponse {
   keycloak_id: string
   realm_roles: string[]
   team_id: number | null
-  team: { id: number; name: string } | null  // Backend now returns this
+  team: { id: number; name: string } | null // Backend now returns this
   managed_team?: { id: number; name: string } | null
 }
 
 // Convert realm_roles array to single UserRole
 function parseUserRole(realm_roles: string[]): UserRole {
-  const roles = realm_roles.map(r => r.toLowerCase())
+  const roles = realm_roles.map((r) => r.toLowerCase())
   if (roles.includes('organization')) return UserRoleEnum.ORGANIZATION
   if (roles.includes('manager')) return UserRoleEnum.MANAGER
   return UserRoleEnum.EMPLOYEE
@@ -45,7 +45,8 @@ function parseUser(apiUser: UserApiResponse): User {
     phone_number: apiUser.phone_number,
     role: parseUserRole(apiUser.realm_roles || []),
     created_at: apiUser.created_at,
-    team: apiUser.team ?? null,  // Use team from API directly
+    team: apiUser.team ?? null, // Use team from API directly
+    managed_team: apiUser.managed_team ?? null,
   }
 }
 

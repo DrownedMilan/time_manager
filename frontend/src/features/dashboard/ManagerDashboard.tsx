@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import StatCard from '../../components/common/StatCard'
 import ClockWidget from '../../components/common/ClockWidget'
 import ClockRecordsTable from '../../components/ClockRecordsTable'
@@ -32,9 +32,10 @@ import {
 } from 'recharts'
 import { useUser } from '@/hooks/useUser'
 import { useAuth } from '@/hooks/useAuth'
-import { getUserClocks } from '@/services/userService'
+import { useUserClocks } from '@/hooks/useUserClocks'
 import { getTeams } from '@/services/teamService'
 import { getClocks } from '@/services/clockService'
+import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
 // ✅ KPI API import (same as Organization page)
@@ -46,7 +47,6 @@ export default function ManagerDashboard() {
   const token = keycloak?.token ?? null
 
   const [isLoading, setIsLoading] = useState(true)
-  const [managerClocks, setManagerClocks] = useState<ClockType[]>([])
   const [team, setTeam] = useState<Team | null>(null)
   const [teamClocks, setTeamClocks] = useState<ClockType[]>([])
   const [metricDialogOpen, setMetricDialogOpen] = useState<
@@ -59,22 +59,26 @@ export default function ManagerDashboard() {
   const [isKpiDownloading, setIsKpiDownloading] = useState(false)
   const [kpiApi, setKpiApi] = useState<KPISummary | null>(null)
 
-  // Fetch data from API
-  const fetchData = useCallback(async () => {
+  // Fetch manager's own clocks using the hook (same as EmployeeDashboard)
+  const {
+    data: managerClocks,
+    isLoading: clocksLoading,
+    refetch: refetchClocks,
+    setData: setManagerClocks, // Add this
+  } = useUserClocks(user?.id ?? null, token)
+
+  const managerClocksList = useMemo(() => managerClocks ?? [], [managerClocks])
+
+  // Fetch team data from API
+  const fetchTeamData = useCallback(async () => {
     if (!token || !user) return
 
     setIsLoading(true)
     try {
-      // Fetch manager's own clocks
-      const userClocks = await getUserClocks(user.id, token)
-      setManagerClocks(userClocks)
-
-      // Fetch all teams and find the one this manager manages
       const allTeams = await getTeams(token)
       const managedTeam = allTeams.find((t) => t.manager_id === user.id) || null
       setTeam(managedTeam)
 
-      // If manager has a team, fetch all clocks and filter for team members
       if (managedTeam && managedTeam.members.length > 0) {
         const allClocks = await getClocks(token)
         const memberIds = managedTeam.members.map((m) => m.id)
@@ -82,93 +86,125 @@ export default function ManagerDashboard() {
         setTeamClocks(filteredClocks)
       }
     } catch (error) {
-      console.error('Failed to fetch data:', error)
-      toast.error('Failed to load dashboard data')
+      console.error('Failed to fetch team data:', error)
+      toast.error('Failed to load team data')
     } finally {
       setIsLoading(false)
     }
   }, [token, user])
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    fetchTeamData()
+  }, [fetchTeamData])
 
-  if (!user) return <div>Loading...</div>
+  // Memoized current clock
+  const currentClock = useMemo(
+    () => managerClocksList.find((c) => !c.clock_out) || null,
+    [managerClocksList]
+  )
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 sm:px-6 py-8 flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-white/60" />
-        <span className="ml-3 text-white/60">Loading dashboard...</span>
-      </div>
-    )
-  }
-
-  const currentClock = managerClocks.find((c) => !c.clock_out) || null
-  const teamMemberIds = team?.members.map((m) => m.id) || []
-
-  const activeClocks = teamClocks.filter((c) => !c.clock_out).length
-  const completedClocksThisWeek = teamClocks.filter((c) => c.clock_out).length
-
-  const totalHoursThisWeek = teamClocks.reduce((acc, clock) => {
-    if (clock.clock_out) {
-      const diff = new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()
-      return acc + diff / (1000 * 60 * 60)
+  // Clock in/out handlers - with optimistic updates
+  const handleClockIn = useCallback(async () => {
+    if (!user || !token) return
+    try {
+      const newClock = await api<ClockType>('/clocks/', {
+        method: 'POST',
+        body: { user_id: user.id },
+        authToken: token,
+      })
+      // Optimistically add the new clock to the list
+      setManagerClocks((prev) => (prev ? [newClock, ...prev] : [newClock]))
+    } catch (err) {
+      console.error('Failed to clock in:', err)
+      // On error, refetch to get correct state
+      refetchClocks()
     }
-    return acc
-  }, 0)
+  }, [user, token, setManagerClocks, refetchClocks])
 
-  // Calculate average total hours per team member
-  const avgTotalHours =
-    team && team.members.length > 0 ? totalHoursThisWeek / team.members.length : 0
-
-  // Calculate working days this month for the manager
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-
-  // Calculate total working days in current month
-  const firstDay = new Date(year, month, 1)
-  const lastDay = new Date(year, month + 1, 0)
-  let totalWorkingDays = 0
-
-  for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
-    const dayOfWeek = d.getDay()
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-      totalWorkingDays++
+  const handleClockOut = useCallback(async () => {
+    if (!user || !token || !currentClock) return
+    try {
+      const updatedClock = await api<ClockType>('/clocks/', {
+        method: 'POST',
+        body: { user_id: user.id },
+        authToken: token,
+      })
+      // Optimistically update the clock in the list
+      setManagerClocks((prev) =>
+        prev
+          ? prev.map((c) => (c.id === updatedClock.id ? updatedClock : c))
+          : [updatedClock]
+      )
+    } catch (err) {
+      console.error('Failed to clock out:', err)
+      // On error, refetch to get correct state
+      refetchClocks()
     }
-  }
+  }, [user, token, currentClock, setManagerClocks, refetchClocks])
 
-  // Calculate days worked this month for the manager
-  const firstDayOfMonth = new Date(year, month, 1)
-  const clocksThisMonth = managerClocks.filter((c) => {
-    const clockDate = new Date(c.clock_in)
-    return clockDate >= firstDayOfMonth && c.clock_out
-  })
+  // Memoized calculations
+  const teamMemberIds = useMemo(() => team?.members.map((m) => m.id) || [], [team])
+  const activeClocks = useMemo(() => teamClocks.filter((c) => !c.clock_out).length, [teamClocks])
+  const completedTeamClocks = useMemo(() => teamClocks.filter((c) => c.clock_out), [teamClocks])
 
-  const daysWorkedSet = new Set(clocksThisMonth.map((c) => new Date(c.clock_in).toDateString()))
-  const daysWorked = daysWorkedSet.size
+  const totalHoursThisWeek = useMemo(() => {
+    return teamClocks.reduce((acc, clock) => {
+      if (clock.clock_out) {
+        const diff = new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()
+        return acc + diff / (1000 * 60 * 60)
+      }
+      return acc
+    }, 0)
+  }, [teamClocks])
 
-  // Calculate Average Work Time per day for the team
-  const completedTeamClocks = teamClocks.filter((c) => c.clock_out)
-  const avgWorkTime =
-    completedTeamClocks.length > 0
+  const avgTotalHours = useMemo(() => {
+    return team && team.members.length > 0 ? totalHoursThisWeek / team.members.length : 0
+  }, [team, totalHoursThisWeek])
+
+  // Working days calculation - memoized
+  const { totalWorkingDays, daysWorked } = useMemo(() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = now.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    
+    let workingDays = 0
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      const dayOfWeek = d.getDay()
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        workingDays++
+      }
+    }
+
+    const firstDayOfMonth = new Date(year, month, 1)
+    const clocksThisMonth = managerClocksList.filter((c) => {
+      const clockDate = new Date(c.clock_in)
+      return clockDate >= firstDayOfMonth && c.clock_out
+    })
+    const daysWorkedSet = new Set(clocksThisMonth.map((c) => new Date(c.clock_in).toDateString()))
+
+    return { totalWorkingDays: workingDays, daysWorked: daysWorkedSet.size }
+  }, [managerClocksList])
+
+  const avgWorkTime = useMemo(() => {
+    return completedTeamClocks.length > 0
       ? completedTeamClocks.reduce((acc, clock) => {
           const diff = new Date(clock.clock_out!).getTime() - new Date(clock.clock_in).getTime()
           return acc + diff / (1000 * 60 * 60)
         }, 0) / completedTeamClocks.length
       : 0
+  }, [completedTeamClocks])
 
-  // Calculate Average Late Time (clocking in after 9:00 AM) for the team
-  const lateClocks = teamClocks.filter((c) => {
-    const clockInTime = new Date(c.clock_in)
-    const hours = clockInTime.getHours()
-    const minutes = clockInTime.getMinutes()
-    return hours > 9 || (hours === 9 && minutes > 0)
-  })
+  const avgLateTime = useMemo(() => {
+    const lateClocks = teamClocks.filter((c) => {
+      const clockInTime = new Date(c.clock_in)
+      const hours = clockInTime.getHours()
+      const minutes = clockInTime.getMinutes()
+      return hours > 9 || (hours === 9 && minutes > 0)
+    })
 
-  const avgLateTime =
-    lateClocks.length > 0
+    return lateClocks.length > 0
       ? lateClocks.reduce((acc, clock) => {
           const clockInTime = new Date(clock.clock_in)
           const scheduledStart = new Date(clockInTime)
@@ -177,17 +213,17 @@ export default function ManagerDashboard() {
           return acc + lateDiff / (1000 * 60)
         }, 0) / lateClocks.length
       : 0
+  }, [teamClocks])
 
-  // Calculate Average Overtime Hours (clocking out after 17:00) for the team
-  const overtimeClocks = completedTeamClocks.filter((c) => {
-    const clockOutTime = new Date(c.clock_out!)
-    const hours = clockOutTime.getHours()
-    const minutes = clockOutTime.getMinutes()
-    return hours > 17 || (hours === 17 && minutes > 0)
-  })
+  const avgOvertimeHours = useMemo(() => {
+    const overtimeClocks = completedTeamClocks.filter((c) => {
+      const clockOutTime = new Date(c.clock_out!)
+      const hours = clockOutTime.getHours()
+      const minutes = clockOutTime.getMinutes()
+      return hours > 17 || (hours === 17 && minutes > 0)
+    })
 
-  const avgOvertimeHours =
-    overtimeClocks.length > 0
+    return overtimeClocks.length > 0
       ? overtimeClocks.reduce((acc, clock) => {
           const clockOutTime = new Date(clock.clock_out!)
           const scheduledEnd = new Date(clockOutTime)
@@ -196,114 +232,44 @@ export default function ManagerDashboard() {
           return acc + overtimeDiff / (1000 * 60 * 60)
         }, 0) / overtimeClocks.length
       : 0
+  }, [completedTeamClocks])
 
-  // Calculate individual team member metrics for ranking
-  const calculateTeamMemberWorkTime = () => {
-    if (!team) return []
-    const memberMetrics = team.members.map((member) => {
-      const memberClocks = teamClocks.filter((c) => c.user_id === member.id && c.clock_out)
-      const totalWorkTime = memberClocks.reduce((acc, clock) => {
-        const diff = new Date(clock.clock_out!).getTime() - new Date(clock.clock_in).getTime()
+  // Manager's personal stats - memoized
+  const managerCompletedClocks = useMemo(
+    () => managerClocksList.filter((c) => c.clock_out),
+    [managerClocksList]
+  )
+
+  const managerHoursThisWeek = useMemo(() => {
+    return managerCompletedClocks.reduce((acc, clock) => {
+      if (clock.clock_out) {
+        const diff = new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()
         return acc + diff / (1000 * 60 * 60)
-      }, 0)
-      const avgWorkTime = memberClocks.length > 0 ? totalWorkTime / memberClocks.length : 0
-      return {
-        user: member,
-        value: avgWorkTime,
-        displayValue: `${avgWorkTime.toFixed(1)}h`,
       }
+      return acc
+    }, 0)
+  }, [managerCompletedClocks])
+
+  const managerAvgLateMinutes = useMemo(() => {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const recentClocks = managerClocksList.filter((c) => new Date(c.clock_in) >= thirtyDaysAgo)
+    const lateMinutes = recentClocks.map((clock) => {
+      const clockInDate = new Date(clock.clock_in)
+      const clockInTotalMinutes = clockInDate.getHours() * 60 + clockInDate.getMinutes()
+      const workStartMinutes = 9 * 60
+      return Math.max(0, clockInTotalMinutes - workStartMinutes)
     })
-    return memberMetrics.sort((a, b) => b.value - a.value)
-  }
 
-  const calculateTeamMemberLateTime = () => {
-    if (!team) return []
-    const memberMetrics = team.members.map((member) => {
-      const memberClocks = teamClocks.filter((c) => {
-        if (c.user_id !== member.id) return false
-        const clockInTime = new Date(c.clock_in)
-        const hours = clockInTime.getHours()
-        const minutes = clockInTime.getMinutes()
-        return hours > 9 || (hours === 9 && minutes > 0)
-      })
-      const totalLateTime = memberClocks.reduce((acc, clock) => {
-        const clockInTime = new Date(clock.clock_in)
-        const scheduledStart = new Date(clockInTime)
-        scheduledStart.setHours(9, 0, 0, 0)
-        const lateDiff = clockInTime.getTime() - scheduledStart.getTime()
-        return acc + lateDiff / (1000 * 60)
-      }, 0)
-      const avgLateTime = memberClocks.length > 0 ? totalLateTime / memberClocks.length : 0
-      return {
-        user: member,
-        value: avgLateTime,
-        displayValue: `${avgLateTime.toFixed(0)} min`,
-      }
-    })
-    return memberMetrics.sort((a, b) => b.value - a.value)
-  }
-
-  const calculateTeamMemberOvertime = () => {
-    if (!team) return []
-    const memberMetrics = team.members.map((member) => {
-      const memberClocks = teamClocks.filter((c) => {
-        if (c.user_id !== member.id || !c.clock_out) return false
-        const clockOutTime = new Date(c.clock_out)
-        const hours = clockOutTime.getHours()
-        const minutes = clockOutTime.getMinutes()
-        return hours > 17 || (hours === 17 && minutes > 0)
-      })
-      const totalOvertime = memberClocks.reduce((acc, clock) => {
-        const clockOutTime = new Date(clock.clock_out!)
-        const scheduledEnd = new Date(clockOutTime)
-        scheduledEnd.setHours(17, 0, 0, 0)
-        const overtimeDiff = clockOutTime.getTime() - scheduledEnd.getTime()
-        return acc + overtimeDiff / (1000 * 60 * 60)
-      }, 0)
-      const avgOvertime = memberClocks.length > 0 ? totalOvertime / memberClocks.length : 0
-      return {
-        user: member,
-        value: avgOvertime,
-        displayValue: `${avgOvertime.toFixed(1)}h`,
-      }
-    })
-    return memberMetrics.sort((a, b) => b.value - a.value)
-  }
-
-  // Calculate manager's own hours this week
-  const managerCompletedClocks = managerClocks.filter((c) => c.clock_out)
-  const managerHoursThisWeek = managerCompletedClocks.reduce((acc, clock) => {
-    if (clock.clock_out) {
-      const diff = new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()
-      return acc + diff / (1000 * 60 * 60)
-    }
-    return acc
-  }, 0)
-
-  // Calculate manager's average late time in the past 30 days
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
-  const managerRecentClocks = managerClocks.filter((c) => new Date(c.clock_in) >= thirtyDaysAgo)
-
-  const managerLateMinutes = managerRecentClocks.map((clock) => {
-    const clockInDate = new Date(clock.clock_in)
-    const clockInHour = clockInDate.getHours()
-    const clockInMinute = clockInDate.getMinutes()
-    const clockInTotalMinutes = clockInHour * 60 + clockInMinute
-    const workStartMinutes = 9 * 60
-
-    return Math.max(0, clockInTotalMinutes - workStartMinutes)
-  })
-
-  const managerAvgLateMinutes =
-    managerLateMinutes.length > 0
-      ? managerLateMinutes.reduce((sum, min) => sum + min, 0) / managerLateMinutes.length
+    return lateMinutes.length > 0
+      ? lateMinutes.reduce((sum, min) => sum + min, 0) / lateMinutes.length
       : 0
+  }, [managerClocksList])
 
-  // Chart data - hours per team member
-  const chartData =
-    team?.members.map((member) => {
+  // Chart data - memoized
+  const chartData = useMemo(() => {
+    return team?.members.map((member) => {
       const memberClocks = teamClocks.filter((c) => c.user_id === member.id && c.clock_out)
       const totalHours = memberClocks.reduce((acc, clock) => {
         if (clock.clock_out) {
@@ -318,18 +284,75 @@ export default function ManagerDashboard() {
         hours: parseFloat(totalHours.toFixed(1)),
       }
     }) || []
+  }, [team, teamClocks])
 
-  // Clock in/out handlers - these will be passed to ClockWidget
-  const handleClockIn = () => {
-    // ClockWidget handles the API call internally via useClock hook
-    // After clock in, refresh data
-    fetchData()
-  }
+  // Ranking calculations - memoized
+  const calculateTeamMemberWorkTime = useCallback(() => {
+    if (!team) return []
+    return team.members.map((member) => {
+      const memberClocks = teamClocks.filter((c) => c.user_id === member.id && c.clock_out)
+      const totalWorkTime = memberClocks.reduce((acc, clock) => {
+        const diff = new Date(clock.clock_out!).getTime() - new Date(clock.clock_in).getTime()
+        return acc + diff / (1000 * 60 * 60)
+      }, 0)
+      const avg = memberClocks.length > 0 ? totalWorkTime / memberClocks.length : 0
+      return { user: member, value: avg, displayValue: `${avg.toFixed(1)}h` }
+    }).sort((a, b) => b.value - a.value)
+  }, [team, teamClocks])
 
-  const handleClockOut = () => {
-    // ClockWidget handles the API call internally via useClock hook
-    // After clock out, refresh data
-    fetchData()
+  const calculateTeamMemberLateTime = useCallback(() => {
+    if (!team) return []
+    return team.members.map((member) => {
+      const memberClocks = teamClocks.filter((c) => {
+        if (c.user_id !== member.id) return false
+        const clockInTime = new Date(c.clock_in)
+        return clockInTime.getHours() > 9 || (clockInTime.getHours() === 9 && clockInTime.getMinutes() > 0)
+      })
+      const totalLateTime = memberClocks.reduce((acc, clock) => {
+        const clockInTime = new Date(clock.clock_in)
+        const scheduledStart = new Date(clockInTime)
+        scheduledStart.setHours(9, 0, 0, 0)
+        return acc + (clockInTime.getTime() - scheduledStart.getTime()) / (1000 * 60)
+      }, 0)
+      const avg = memberClocks.length > 0 ? totalLateTime / memberClocks.length : 0
+      return { user: member, value: avg, displayValue: `${avg.toFixed(0)} min` }
+    }).sort((a, b) => b.value - a.value)
+  }, [team, teamClocks])
+
+  const calculateTeamMemberOvertime = useCallback(() => {
+    if (!team) return []
+    return team.members.map((member) => {
+      const memberClocks = teamClocks.filter((c) => {
+        if (c.user_id !== member.id || !c.clock_out) return false
+        const clockOutTime = new Date(c.clock_out)
+        return clockOutTime.getHours() > 17 || (clockOutTime.getHours() === 17 && clockOutTime.getMinutes() > 0)
+      })
+      const totalOvertime = memberClocks.reduce((acc, clock) => {
+        const clockOutTime = new Date(clock.clock_out!)
+        const scheduledEnd = new Date(clockOutTime)
+        scheduledEnd.setHours(17, 0, 0, 0)
+        return acc + (clockOutTime.getTime() - scheduledEnd.getTime()) / (1000 * 60 * 60)
+      }, 0)
+      const avg = memberClocks.length > 0 ? totalOvertime / memberClocks.length : 0
+      return { user: member, value: avg, displayValue: `${avg.toFixed(1)}h` }
+    }).sort((a, b) => b.value - a.value)
+  }, [team, teamClocks])
+
+  // Recent clocks for display - memoized
+  const recentManagerClocks = useMemo(
+    () => managerClocksList.slice(0, 5),
+    [managerClocksList]
+  )
+
+  if (!user) return <div>Loading...</div>
+
+  if (isLoading || clocksLoading) {
+    return (
+      <div className="container mx-auto px-4 sm:px-6 py-8 flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-white/60" />
+        <span className="ml-3 text-white/60">Loading dashboard...</span>
+      </div>
+    )
   }
 
   // =====================
@@ -526,13 +549,13 @@ export default function ManagerDashboard() {
                 </h3>
                 <div className="overflow-y-auto flex-1 min-h-0">
                   <div className="p-4 space-y-3">
-                    {managerClocks.length === 0 ? (
+                    {recentManagerClocks.length === 0 ? (
                       <div className="text-center py-8">
                         <Clock className="w-8 h-8 text-white/30 mx-auto mb-2" />
                         <p className="text-white/50 text-xs">No records found</p>
                       </div>
                     ) : (
-                      managerClocks.slice(0, 5).map((clock) => {
+                      recentManagerClocks.map((clock) => {
                         const duration = clock.clock_out
                           ? (() => {
                               const diff =
