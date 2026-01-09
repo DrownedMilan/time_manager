@@ -100,7 +100,7 @@ export default function ManagerDashboard() {
   // Memoized current clock
   const currentClock = useMemo(
     () => managerClocksList.find((c) => !c.clock_out) || null,
-    [managerClocksList],
+    [managerClocksList]
   )
 
   // Clock in/out handlers - with optimistic updates
@@ -166,7 +166,6 @@ export default function ManagerDashboard() {
     const month = now.getMonth()
     const firstDay = new Date(year, month, 1)
     const lastDay = new Date(year, month + 1, 0)
-
     let workingDays = 0
     for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
       const dayOfWeek = d.getDay()
@@ -488,8 +487,8 @@ export default function ManagerDashboard() {
           {/* ✅ KPI API info (optional display, same idea as Organization page) */}
           {kpiApi && (
             <div className="mb-4 text-sm text-white/60">
-              KPI API → Employees: {kpiApi.totalEmployees} · Teams: {kpiApi.totalTeams} · Week
-              Hours: {kpiApi.totalHoursThisWeek}
+              KPI API → Employees: {kpiApi.totalEmployees} · Teams: {kpiApi.totalTeams} · Week Hours:{' '}
+              {kpiApi.totalHoursThisWeek}
             </div>
           )}
 
