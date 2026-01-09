@@ -461,8 +461,126 @@ export default function OrganizationDashboard() {
     }
   }
 
-  const handleTeamCreated = (newTeam: Team) => {
-    setTeams((prevTeams) => [...prevTeams, newTeam])
+  const handleTeamCreated = (newTeam: Team, memberIds: number[], managerId: number) => {
+    // Build the team with proper member info
+    const teamMembers = users
+      .filter((u) => memberIds.includes(u.id))
+      .map((u) => ({
+        id: u.id,
+        first_name: u.first_name,
+        last_name: u.last_name,
+        email: u.email,
+      }))
+
+    const manager = users.find((u) => u.id === managerId)
+
+    const fullTeam: Team = {
+      ...newTeam,
+      members: teamMembers,
+      manager: manager
+        ? {
+            id: manager.id,
+            first_name: manager.first_name,
+            last_name: manager.last_name,
+            email: manager.email,
+          }
+        : null,
+    }
+
+    const teamMinimal = { id: fullTeam.id, name: fullTeam.name, manager: fullTeam.manager }
+
+    // Update teams state with the full team
+    setTeams((prevTeams) => [...prevTeams, fullTeam])
+
+    // Update users state to reflect team assignments
+    setUsers((prevUsers) =>
+      prevUsers.map((u) => {
+        // Manager gets managed_team set
+        if (u.id === managerId) {
+          return {
+            ...u,
+            managed_team: teamMinimal,
+          }
+        }
+        // Members get team set
+        if (memberIds.includes(u.id)) {
+          return {
+            ...u,
+            team: teamMinimal,
+          }
+        }
+        return u
+      })
+    )
+  }
+
+  // Handler for when a team is updated (manager changed, members added/removed)
+  const handleTeamUpdated = (updatedTeam: Team, addedMemberIds: number[], removedMemberIds: number[], newManagerId: number | null, oldManagerId: number | null) => {
+    const teamMinimal = { 
+      id: updatedTeam.id, 
+      name: updatedTeam.name, 
+      manager: updatedTeam.manager 
+    }
+
+    // Update teams state
+    setTeams((prevTeams) =>
+      prevTeams.map((t) => (t.id === updatedTeam.id ? updatedTeam : t))
+    )
+
+    // Update users state
+    setUsers((prevUsers) =>
+      prevUsers.map((u) => {
+        // Handle manager changes
+        if (oldManagerId && u.id === oldManagerId && oldManagerId !== newManagerId) {
+          // Old manager loses managed_team
+          return { ...u, managed_team: null }
+        }
+        if (newManagerId && u.id === newManagerId) {
+          // New manager gets managed_team
+          return { ...u, managed_team: teamMinimal }
+        }
+        
+        // Handle member removals
+        if (removedMemberIds.includes(u.id)) {
+          return { ...u, team: null }
+        }
+        
+        // Handle member additions
+        if (addedMemberIds.includes(u.id)) {
+          return { ...u, team: teamMinimal }
+        }
+        
+        // Update team name for existing members if name changed
+        if (u.team?.id === updatedTeam.id) {
+          return { ...u, team: teamMinimal }
+        }
+        if (u.managed_team?.id === updatedTeam.id) {
+          return { ...u, managed_team: teamMinimal }
+        }
+        
+        return u
+      })
+    )
+  }
+
+  // Handler for when a team is deleted
+  const handleTeamDeleted = (teamId: number) => {
+    // Remove team from teams state
+    setTeams((prevTeams) => prevTeams.filter((t) => t.id !== teamId))
+    
+    // Clear team/managed_team from all users who were part of this team
+    setUsers((prevUsers) =>
+      prevUsers.map((u) => {
+        let updated = { ...u }
+        if (u.team?.id === teamId) {
+          updated.team = null
+        }
+        if (u.managed_team?.id === teamId) {
+          updated.managed_team = null
+        }
+        return updated
+      })
+    )
   }
 
   return (
@@ -709,7 +827,8 @@ export default function OrganizationDashboard() {
         team={editingTeam}
         open={isTeamEditOpen}
         onOpenChange={setIsTeamEditOpen}
-        onSave={fetchData}
+        onTeamUpdated={handleTeamUpdated}
+        onDelete={handleTeamDeleted}
       />
 
       {/* Employee Ranking Dialogs */}
