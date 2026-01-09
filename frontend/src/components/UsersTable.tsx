@@ -5,14 +5,15 @@ import { Avatar, AvatarFallback } from './ui/avatar'
 import { Button } from './ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
 import { type User, UserRole } from '@/types/user'
-import { Edit } from 'lucide-react'
+import { Edit, Eye } from 'lucide-react'
 
 interface UsersTableProps {
   users: User[]
   onEditUser?: (user: User) => void
+  onViewDetail?: (user: User) => void
 }
 
-export default function UsersTable({ users, onEditUser }: UsersTableProps) {
+export default function UsersTable({ users, onEditUser, onViewDetail }: UsersTableProps) {
   const [employeeFilter, setEmployeeFilter] = useState('all')
   const [roleFilter, setRoleFilter] = useState('all')
   const [teamFilter, setTeamFilter] = useState('all')
@@ -108,7 +109,11 @@ export default function UsersTable({ users, onEditUser }: UsersTableProps) {
                     All Roles
                   </SelectItem>
                   {uniqueRoles.map((role) => (
-                    <SelectItem key={role || 'unknown'} value={role || 'unknown'} className="text-white">
+                    <SelectItem
+                      key={role || 'unknown'}
+                      value={role || 'unknown'}
+                      className="text-white"
+                    >
                       {role || 'Unknown'}
                     </SelectItem>
                   ))}
@@ -149,7 +154,9 @@ export default function UsersTable({ users, onEditUser }: UsersTableProps) {
                 </SelectContent>
               </Select>
             </TableHead>
-            {onEditUser && <TableHead className="p-2 text-white/80">Actions</TableHead>}
+            {(onEditUser || onViewDetail) && (
+              <TableHead className="p-2 text-white/80">Actions</TableHead>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -176,17 +183,32 @@ export default function UsersTable({ users, onEditUser }: UsersTableProps) {
                 {user.team?.name || user.managed_team?.name || 'No Team'}
               </TableCell>
               <TableCell className="text-white/70">{formatDate(user.created_at)}</TableCell>
-              {onEditUser && (
+              {(onEditUser || onViewDetail) && (
                 <TableCell>
-                  <Button
-                    onClick={() => onEditUser(user)}
-                    size="sm"
-                    variant="outline"
-                    className="bg-white/5 border-white/20 text-white hover:bg-white/10 h-8 px-3"
-                  >
-                    <Edit className="w-3 h-3 mr-1" />
-                    Edit
-                  </Button>
+                  <div className="flex gap-2">
+                    {onViewDetail && (
+                      <Button
+                        onClick={() => onViewDetail(user)}
+                        size="sm"
+                        variant="outline"
+                        className="bg-white/5 border-white/20 text-white hover:bg-white/10 h-8 px-3"
+                      >
+                        <Eye className="w-3 h-3 mr-1" />
+                        View
+                      </Button>
+                    )}
+                    {onEditUser && (
+                      <Button
+                        onClick={() => onEditUser(user)}
+                        size="sm"
+                        variant="outline"
+                        className="bg-white/5 border-white/20 text-white hover:bg-white/10 h-8 px-3"
+                      >
+                        <Edit className="w-3 h-3 mr-1" />
+                        Edit
+                      </Button>
+                    )}
+                  </div>
                 </TableCell>
               )}
             </TableRow>

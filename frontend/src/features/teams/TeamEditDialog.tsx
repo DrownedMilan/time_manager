@@ -35,7 +35,12 @@ import { Save, XCircle, UserPlus, UserMinus, Trash2, Loader2 } from 'lucide-reac
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { getUsers } from '@/services/userService'
-import { updateTeam, deleteTeam, addMemberToTeam, removeMemberFromTeam } from '@/services/teamService'
+import {
+  updateTeam,
+  deleteTeam,
+  addMemberToTeam,
+  removeMemberFromTeam,
+} from '@/services/teamService'
 import type { User } from '@/types/user'
 
 interface TeamEditDialogProps {
@@ -46,7 +51,13 @@ interface TeamEditDialogProps {
   onSave?: () => void
 }
 
-export default function TeamEditDialog({ team, open, onOpenChange, onDelete, onSave }: TeamEditDialogProps) {
+export default function TeamEditDialog({
+  team,
+  open,
+  onOpenChange,
+  onDelete,
+  onSave,
+}: TeamEditDialogProps) {
   const { keycloak } = useAuth()
   const token = keycloak?.token ?? null
 
@@ -114,7 +125,7 @@ export default function TeamEditDialog({ team, open, onOpenChange, onDelete, onS
 
   const handleRemoveMember = async (memberId: number) => {
     if (!team) return
-    
+
     const member = members.find((m) => m.id === memberId)
     try {
       await removeMemberFromTeam(team.id, memberId, token)
@@ -273,7 +284,11 @@ export default function TeamEditDialog({ team, open, onOpenChange, onDelete, onS
 
                 {/* Add Member Section */}
                 <div className="flex gap-2">
-                  <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId} disabled={isSubmitting}>
+                  <Select
+                    value={selectedEmployeeId}
+                    onValueChange={setSelectedEmployeeId}
+                    disabled={isSubmitting}
+                  >
                     <SelectTrigger className="bg-white/10 border-white/20 text-white flex-1">
                       <SelectValue placeholder="Select employee to add" />
                     </SelectTrigger>
@@ -298,7 +313,9 @@ export default function TeamEditDialog({ team, open, onOpenChange, onDelete, onS
                   <Button
                     onClick={handleAddMember}
                     size="sm"
-                    disabled={!selectedEmployeeId || availableEmployees.length === 0 || isSubmitting}
+                    disabled={
+                      !selectedEmployeeId || availableEmployees.length === 0 || isSubmitting
+                    }
                     className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
                   >
                     <UserPlus className="w-4 h-4" />
@@ -398,8 +415,9 @@ export default function TeamEditDialog({ team, open, onOpenChange, onDelete, onS
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Delete Team</AlertDialogTitle>
             <AlertDialogDescription className="text-white/60">
-              Are you sure you want to delete <span className="text-white font-medium">{team?.name}</span>?
-              This action cannot be undone. All team members will be unassigned from this team.
+              Are you sure you want to delete{' '}
+              <span className="text-white font-medium">{team?.name}</span>? This action cannot be
+              undone. All team members will be unassigned from this team.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

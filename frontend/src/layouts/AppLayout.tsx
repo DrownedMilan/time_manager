@@ -17,7 +17,7 @@ export default function AppLayout() {
       }}
     >
       {/* <Header /> */}
-      
+
       <Container
         maxWidth="xl"
         sx={{
@@ -40,7 +40,7 @@ export default function AppLayout() {
           <Outlet />
         </Box>
       </Container>
-      
+
       {/* <Footer /> */}
     </Box>
   )

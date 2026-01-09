@@ -9,12 +9,12 @@
     <!-- Tout ce qui est "App only" (à ne PAS injecter dans les pages Keycloak) -->
     <meta name="keycloakify-ignore-start" />
     <title>Time Manager</title>
-<script>
-  window.ENV = {
-    API_ADDRESS: "${API_ADDRESS!''}",
-    SENTRY_DSN: "${SENTRY_DSN!''}"
-  };
-</script>
+    <script>
+      window.ENV = {
+        API_ADDRESS: "${API_ADDRESS!''}",
+        SENTRY_DSN: "${SENTRY_DSN!''}",
+      }
+    </script>
 
     <meta name="keycloakify-ignore-end" />
   </head>

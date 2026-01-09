@@ -181,6 +181,7 @@ class UserPublic(SQLModel):
     realm_roles: List[str]
     team_id: Optional[int] = None
     team: Optional[TeamBasic] = None  # Add team info
+    temp_password: Optional[str] = None  # Only returned on creation
 
 
 class UserMinimal(SQLModel):
@@ -204,6 +205,16 @@ class UserUpdate(SQLModel):
     last_name: Optional[str] = None
     email: Optional[EmailStr] = None
     phone_number: Optional[str] = None
+
+
+class PasswordChange(SQLModel):
+    current_password: str
+    new_password: str
+
+
+class PasswordReset(SQLModel):
+    """Model for password reset response (returns temporary password)"""
+    temp_password: str
 
 
 class ClockCreate(SQLModel):

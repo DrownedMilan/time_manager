@@ -23,13 +23,14 @@ interface UserApiResponse {
   keycloak_id: string
   realm_roles: string[]
   team_id: number | null
-  team: { id: number; name: string } | null  // Backend now returns this
+  team: { id: number; name: string } | null // Backend now returns this
   managed_team?: { id: number; name: string } | null
+  temp_password?: string | null // Only returned on creation
 }
 
 // Convert realm_roles array to single UserRole
 function parseUserRole(realm_roles: string[]): UserRole {
-  const roles = realm_roles.map(r => r.toLowerCase())
+  const roles = realm_roles.map((r) => r.toLowerCase())
   if (roles.includes('organization')) return UserRoleEnum.ORGANIZATION
   if (roles.includes('manager')) return UserRoleEnum.MANAGER
   return UserRoleEnum.EMPLOYEE
@@ -45,7 +46,7 @@ function parseUser(apiUser: UserApiResponse): User {
     phone_number: apiUser.phone_number,
     role: parseUserRole(apiUser.realm_roles || []),
     created_at: apiUser.created_at,
-    team: apiUser.team ?? null,  // Use team from API directly
+    team: apiUser.team ?? null, // Use team from API directly
   }
 }
 
@@ -80,13 +81,16 @@ export async function getUserById(userId: number, authToken?: string | null): Pr
 export async function createUser(
   payload: UserCreatePayload,
   authToken?: string | null,
-): Promise<User> {
+): Promise<{ user: User; tempPassword?: string }> {
   const response = await api<UserApiResponse>(`/users/`, {
     method: 'POST',
     body: payload,
     authToken,
   })
-  return parseUser(response)
+  return {
+    user: parseUser(response),
+    tempPassword: response.temp_password ?? undefined,
+  }
 }
 
 /**
@@ -124,6 +128,44 @@ export async function getUserClocks(userId: number, authToken?: string | null) {
 export async function deleteUser(userId: number, authToken?: string | null) {
   return api<void>(`/users/${userId}`, {
     method: 'DELETE',
+    authToken,
+  })
+}
+
+export interface PasswordChangePayload {
+  current_password: string
+  new_password: string
+}
+
+/**
+ * POST /users/me/change-password
+ * Change the password for the currently authenticated user
+ */
+export async function changePassword(
+  payload: PasswordChangePayload,
+  authToken?: string | null,
+): Promise<{ message: string }> {
+  return api<{ message: string }>(`/users/me/change-password`, {
+    method: 'POST',
+    body: payload,
+    authToken,
+  })
+}
+
+export interface PasswordResetResponse {
+  temp_password: string
+}
+
+/**
+ * POST /users/:id/reset-password
+ * Reset a user's password to a temporary password (organization/manager only)
+ */
+export async function resetUserPassword(
+  userId: number,
+  authToken?: string | null,
+): Promise<PasswordResetResponse> {
+  return api<PasswordResetResponse>(`/users/${userId}/reset-password`, {
+    method: 'POST',
     authToken,
   })
 }

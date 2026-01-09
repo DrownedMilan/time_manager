@@ -1,27 +1,35 @@
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from 'lucide-react'
 
 interface StatCardProps {
-  title: string;
-  value: string | number;
-  icon: LucideIcon;
-  description?: string;
+  title: string
+  value: string | number
+  icon: LucideIcon
+  description?: string
   trend?: {
-    value: string;
-    positive: boolean;
-  };
+    value: string
+    positive: boolean
+  }
   progress?: {
-    current: number;
-    total: number;
-    unit?: string;
-  };
-  onClick?: () => void;
+    current: number
+    total: number
+    unit?: string
+  }
+  onClick?: () => void
 }
 
-export default function StatCard({ title, value, icon: Icon, description, trend, progress, onClick }: StatCardProps) {
-  const progressPercentage = progress ? (progress.current / progress.total) * 100 : 0;
+export default function StatCard({
+  title,
+  value,
+  icon: Icon,
+  description,
+  trend,
+  progress,
+  onClick,
+}: StatCardProps) {
+  const progressPercentage = progress ? (progress.current / progress.total) * 100 : 0
 
   return (
-    <div 
+    <div
       className={`backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
     >
@@ -29,9 +37,7 @@ export default function StatCard({ title, value, icon: Icon, description, trend,
         <div className="flex-1">
           <p className="text-sm text-white/60 mb-2">{title}</p>
           <p className="text-white/90 mb-1">{value}</p>
-          {description && (
-            <p className="text-xs text-white/50">{description}</p>
-          )}
+          {description && <p className="text-xs text-white/50">{description}</p>}
           {trend && (
             <div className="mt-2 flex items-center gap-1">
               <span className={`text-xs ${trend.positive ? 'text-green-400' : 'text-red-400'}`}>
@@ -43,7 +49,7 @@ export default function StatCard({ title, value, icon: Icon, description, trend,
           {progress && (
             <div className="mt-3">
               <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <div 
+                <div
                   className="h-full bg-gradient-to-r from-blue-400 to-cyan-400 transition-all duration-500"
                   style={{ width: `${progressPercentage}%` }}
                 />
@@ -59,5 +65,5 @@ export default function StatCard({ title, value, icon: Icon, description, trend,
         </div>
       </div>
     </div>
-  );
+  )
 }
