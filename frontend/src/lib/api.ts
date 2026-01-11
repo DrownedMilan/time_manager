@@ -38,7 +38,7 @@ export async function api<TResponse>(
   try {
     data = await res.json()
   } catch {
-    console.log('error')
+    // Failed to parse JSON response
   }
   if (!res.ok) {
     throw new ApiError(res.status, `HTTP ${res.status}`, data)

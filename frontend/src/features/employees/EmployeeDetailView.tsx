@@ -64,37 +64,6 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
 
   const canResetPassword = currentUser && (isOrganization || isManager) && isNotSelf
 
-  // Debug: Log current user and role for troubleshooting
-  if (open) {
-    console.log('EmployeeDetailView - Debug Info:', {
-      currentUser: currentUser
-        ? {
-            id: currentUser.id,
-            role: currentUser.role,
-            normalizedRole: currentUserRole,
-            roleType: typeof currentUser.role,
-          }
-        : null,
-      targetUser: {
-        id: user.id,
-        role: user.role,
-        roleType: typeof user.role,
-      },
-      checks: {
-        isOrganization,
-        isManager,
-        isNotSelf,
-        canResetPassword,
-        currentUserRole,
-      },
-      roleConstants: {
-        ORGANIZATION: UserRole.ORGANIZATION,
-        MANAGER: UserRole.MANAGER,
-        EMPLOYEE: UserRole.EMPLOYEE,
-      },
-    })
-  }
-
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
   }
@@ -109,7 +78,6 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
         return 'bg-green-500/10 border-green-500/30 text-green-300'
     }
   }
-
 
   const handleResetPassword = async () => {
     if (!token) {
@@ -338,8 +306,8 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
                 </Button>
               </div>
               <p className="text-xs text-blue-400 mt-2">
-                💡 Share this temporary password with the employee. They will be required to change
-                it on their next login.
+                Share this temporary password with the employee. They will be required to change it
+                on their next login.
               </p>
             </div>
 

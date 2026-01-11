@@ -5,6 +5,8 @@ import LoginPage from '@/features/auth/LoginPage'
 import EmployeeDashboard from '@/features/dashboard/EmployeeDashboard'
 import ManagerDashboard from '@/features/dashboard/ManagerDashboard'
 import OrganizationDashboard from '@/features/dashboard/OrganizationDashboard'
+import UnauthorizedPage from '@/features/errors/UnauthorizedPage'
+import NotFoundPage from '@/features/errors/NotFoundPage'
 
 import DashboardLayout from '@/layouts/DashboardLayout'
 
@@ -94,8 +96,9 @@ export const AppRoutes = () => {
       {/* DEFAULT REDIRECT */}
       <Route path="/" element={<Navigate to="/login" replace />} />
 
-      <Route path="/unauthorized" element={<div>🚫 Access Denied</div>} />
-      <Route path="*" element={<div>❌ 404 Not Found</div>} />
+      {/* ERROR PAGES */}
+      <Route path="/unauthorized" element={<UnauthorizedPage />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
 }

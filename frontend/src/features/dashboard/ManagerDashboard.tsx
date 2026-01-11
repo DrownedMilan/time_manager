@@ -38,7 +38,6 @@ import { getClocks } from '@/services/clockService'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
-// ✅ KPI API import (same as Organization page)
 import { getKpiSummary, type KPISummary } from '@/lib/kpiService'
 
 export default function ManagerDashboard() {
@@ -55,7 +54,7 @@ export default function ManagerDashboard() {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('employee')
 
-  // ✅ KPI API states (same as Organization page)
+  // KPI API states
   const [isKpiDownloading, setIsKpiDownloading] = useState(false)
   const [kpiApi, setKpiApi] = useState<KPISummary | null>(null)
 
@@ -100,7 +99,7 @@ export default function ManagerDashboard() {
   // Memoized current clock
   const currentClock = useMemo(
     () => managerClocksList.find((c) => !c.clock_out) || null,
-    [managerClocksList]
+    [managerClocksList],
   )
 
   // Clock in/out handlers - with optimistic updates
@@ -400,7 +399,7 @@ export default function ManagerDashboard() {
     URL.revokeObjectURL(url)
   }
 
-  // ✅ KPI API download (same behavior as Organization page)
+  // KPI API download
   const handleDownloadKpiCsv = async () => {
     if (!token) {
       toast.error('Missing auth token')
@@ -484,11 +483,11 @@ export default function ManagerDashboard() {
             </div>
           </div>
 
-          {/* ✅ KPI API info (optional display, same idea as Organization page) */}
+          {/* KPI API info */}
           {kpiApi && (
             <div className="mb-4 text-sm text-white/60">
-              KPI API → Employees: {kpiApi.totalEmployees} · Teams: {kpiApi.totalTeams} · Week Hours:{' '}
-              {kpiApi.totalHoursThisWeek}
+              KPI API → Employees: {kpiApi.totalEmployees} · Teams: {kpiApi.totalTeams} · Week
+              Hours: {kpiApi.totalHoursThisWeek}
             </div>
           )}
 
@@ -642,7 +641,6 @@ export default function ManagerDashboard() {
           <div className="mb-6 flex items-center justify-between">
             <h3 className="text-white/90">{team ? team.name : 'No team assigned'}</h3>
 
-            {/* ✅ Replace existing export behavior with KPI API CSV export (same as Organization page) */}
             <Button
               onClick={handleDownloadKpiCsv}
               disabled={isKpiDownloading}

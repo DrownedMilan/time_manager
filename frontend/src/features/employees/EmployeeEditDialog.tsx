@@ -108,16 +108,6 @@ export default function EmployeeEditDialog({
   }, [user, open, showTempPassword, createdUserId])
 
   const handleSave = async () => {
-    console.log('handleSave called', {
-      user,
-      firstName,
-      lastName,
-      email,
-      phoneNumber,
-      role,
-      token: token ? 'present' : 'missing',
-    })
-
     // Validation
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !phoneNumber.trim()) {
       toast.error('Please fill in all fields')
@@ -143,7 +133,6 @@ export default function EmployeeEditDialog({
 
       if (user) {
         // Update existing user
-        console.log('Updating user:', user.id)
         savedUser = await updateUser(
           user.id,
           {
@@ -154,7 +143,6 @@ export default function EmployeeEditDialog({
           },
           token,
         )
-        console.log('User updated successfully:', savedUser)
         toast.success(`Employee ${firstName} ${lastName} updated successfully!`)
         onOpenChange(false)
         if (onSave) {
@@ -170,9 +158,7 @@ export default function EmployeeEditDialog({
           keycloak_id: '', // Backend will create in Keycloak
           realm_roles: [role.toLowerCase()],
         }
-        console.log('Creating user with payload:', payload)
         const result = await createUser(payload, token)
-        console.log('User created successfully:', result)
         savedUser = result.user
 
         // Set temporary password if returned from backend
@@ -386,8 +372,8 @@ export default function EmployeeEditDialog({
                   </Button>
                 </div>
                 <p className="text-xs text-blue-400 mt-2">
-                  💡 This temporary password must be used for the employee's first login. Keycloak
-                  will automatically prompt them to change it.
+                  This temporary password must be used for the employee's first login. Keycloak will
+                  automatically prompt them to change it.
                 </p>
               </div>
             )}

@@ -37,10 +37,8 @@ export const KeycloakProvider = ({ children }: KeycloakProviderProps) => {
         localStorage.setItem('kc_token', keycloak.token)
 
         await keycloak.updateToken(30).catch(() => keycloak.login())
-        console.log('Token parsed:', keycloak.tokenParsed)
-        console.log('Token expires in:', (keycloak.tokenParsed?.exp || 0) - Date.now() / 1000)
 
-        // 2️⃣ Load FULL User from backend
+        // 2️Load FULL User from backend
         const res = await api.get<User>('/users/me', {
           headers: { Authorization: `Bearer ${keycloak.token}` },
         })
