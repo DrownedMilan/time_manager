@@ -46,27 +46,6 @@ import { useUser } from '@/hooks/useUser'
 
 export default function OrganizationDashboard() {
   const { user } = useUser()
-
-  useEffect(() => {
-    // USERS
-    kpisApi
-      .users()
-      .then((data) => console.log('✅ USERS API:', data))
-      .catch((err) => console.error('❌ USERS API error:', err))
-
-    // TEAMS
-    kpisApi
-      .teams()
-      .then((data) => console.log('✅ TEAMS API:', data))
-      .catch((err) => console.error('❌ TEAMS API error:', err))
-
-    // CLOCKS
-    kpisApi
-      .clocks()
-      .then((data) => console.log('✅ CLOCKS API:', data))
-      .catch((err) => console.error('❌ CLOCKS API error:', err))
-  }, [])
-
   const { keycloak } = useAuth()
   const token = keycloak?.token ?? null
 
