@@ -46,6 +46,8 @@ import { useUser } from '@/hooks/useUser'
 
 export default function OrganizationDashboard() {
   const { user } = useUser()
+
+
   const { keycloak } = useAuth()
   const token = keycloak?.token ?? null
 
@@ -355,39 +357,12 @@ export default function OrganizationDashboard() {
       setKpiApi(summary)
 
       const today = isoDate()
-      downloadCsvExcel(`kpi-api-${today}.csv`, [summary])
 
-      toast.success('KPI (API) exported successfully!')
-    } catch (error) {
-      toast.error('Failed to export KPI (API)')
-    } finally {
-      setIsKpiDownloading(false)
-    }
-  }
+      // 1. KPI Summary CSV
+      downloadCsvExcel(`kpi-${today}.csv`, [summary])
 
-  const handleExportCsv = () => {
-    const today = isoDate()
-
-    // USERS
-    downloadCsvExcel(
-      `users-${today}.csv`,
-      users.map((u) => ({
-        id: u.id,
-        first_name: u.first_name,
-        last_name: u.last_name,
-        email: u.email,
-        phone_number: u.phone_number ?? '',
-      })),
-    )
-
-    // TEAMS
-    const managerNameById = new Map<number, string>(
-      users.map((u) => [u.id, `${u.first_name} ${u.last_name}`]),
-    )
-
-    downloadCsvExcel(
-      `teams-${today}.csv`,
-      teams.map((t) => ({
+      // 2. Teams CSV
+      const teamsData = teams.map((t) => ({
         id: t.id,
         name: t.name,
         description: t.description,
@@ -449,7 +424,6 @@ export default function OrganizationDashboard() {
 
       toast.success('All CSV files exported successfully!')
     } catch (error) {
-      console.error('Failed to export CSV:', error)
       toast.error('Failed to export CSV')
     } finally {
       setIsKpiDownloading(false)
