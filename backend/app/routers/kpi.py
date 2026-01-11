@@ -23,9 +23,9 @@ class KPISummary(BaseModel):
 
 def start_of_week_utc(now: datetime) -> datetime:
     """
-    Semaine ISO: lundi 00:00 UTC -> maintenant
+    ISO week: Monday 00:00 UTC -> now
     """
-    # now est timezone-aware (UTC)
+    # now is timezone-aware (UTC)
     monday = now - timedelta(days=now.weekday())
     return monday.replace(hour=0, minute=0, second=0, microsecond=0)
 
@@ -42,15 +42,15 @@ def kpi_summary(
     now = datetime.now(timezone.utc)
     week_start = start_of_week_utc(now)
 
-    # On prend les clocks de la semaine (clock_in dans la semaine)
+    # Get clocks from the week (clock_in within the week)
     week_clocks = session.exec(
         select(Clock).where(Clock.clock_in >= week_start)
     ).all()
 
-    # Active clocks = clock_out est NULL (peu importe la semaine, ou tu peux filtrer semaine)
+    # Active clocks = clock_out is NULL (regardless of week, or you can filter by week)
     active_clocks = len(session.exec(select(Clock).where(Clock.clock_out == None)).all())  # noqa: E711
 
-    # --- Durations (en Python, simple à comprendre) ---
+    # --- Durations (in Python, simple to understand) ---
     completed_week_clocks = [c for c in week_clocks if c.clock_out is not None]
 
     total_hours_week = 0.0
@@ -63,7 +63,7 @@ def kpi_summary(
         if completed_week_clocks else 0.0
     )
 
-    # Late time: arrivée après 09:00
+    # Late time: arrival after 09:00
     late_clocks = []
     for c in week_clocks:
         clock_in = c.clock_in.astimezone(timezone.utc)
@@ -79,7 +79,7 @@ def kpi_summary(
             total_late_minutes += (clock_in - scheduled).total_seconds() / 60.0
         avg_late_minutes = total_late_minutes / len(late_clocks)
 
-    # Overtime: sortie après 17:00 (seulement clocks complétées)
+    # Overtime: departure after 17:00 (only completed clocks)
     overtime_clocks = []
     for c in completed_week_clocks:
         clock_out = c.clock_out.astimezone(timezone.utc)

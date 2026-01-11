@@ -22,13 +22,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { type User, UserRole } from '@/types/user'
-import { mockClocks } from '../../lib/mockData'
 import { Mail, Phone, Calendar, Users, Clock, KeyRound, Copy, CheckCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import ClockRecordsTable from '@/components/ClockRecordsTable'
 import { useAuth } from '@/hooks/useAuth'
 import { useUser } from '@/hooks/useUser'
 import { resetUserPassword } from '@/services/userService'
+import { useUserClocks } from '@/hooks/useUserClocks'
 
 interface EmployeeDetailViewProps {
   user: User | null
@@ -46,6 +46,9 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
   const [tempPassword, setTempPassword] = useState('')
   const [passwordCopied, setPasswordCopied] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
+
+  // Fetch user's clock records from API
+  const { data: userClocks = [] } = useUserClocks(user?.id ?? null, token)
 
   if (!user) return null
 
@@ -107,8 +110,6 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
     }
   }
 
-  // Get user's clock records
-  const userClocks = mockClocks.filter((clock) => clock.user_id === user.id)
 
   const handleResetPassword = async () => {
     if (!token) {

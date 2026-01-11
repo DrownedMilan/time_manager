@@ -9,6 +9,7 @@ import { api } from '@/services/api'
 import type { User } from '@/types/user'
 
 import { logout } from './logout'
+import { LoadingPage } from '@/components/common/LoadingPage'
 
 interface KeycloakProviderProps {
   children: ReactNode
@@ -49,7 +50,7 @@ export const KeycloakProvider = ({ children }: KeycloakProviderProps) => {
       .catch(() => setInitialized(true))
   }, [])
 
-  if (!initialized) return <div>Chargement...</div>
+  if (!initialized) return <LoadingPage />
 
   return (
     <AuthContext.Provider value={{ keycloak, authenticated, initialized, logout, user }}>

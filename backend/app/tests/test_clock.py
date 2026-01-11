@@ -19,6 +19,6 @@ def test_clock_creation(session):
 
     assert clock.id is not None
 
-    # ✅ correction : rendre clock_in "timezone-aware"
+    # ✅ correction: make clock_in "timezone-aware"
     clock_in_aware = clock.clock_in.replace(tzinfo=timezone.utc)
     assert clock_in_aware <= datetime.now(timezone.utc)

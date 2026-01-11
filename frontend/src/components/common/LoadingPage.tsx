@@ -20,7 +20,7 @@ export const LoadingPage = ({ onForceLogout }: LoadingPageProps) => {
           </div>
         </div>
         <h1 className="text-3xl font-bold mb-2">Time Manager</h1>
-        <p className="text-white/70 mb-6">Initialisation de la session...</p>
+        <p className="text-white/70 mb-6">Initializing session...</p>
 
         <Loader2 className="w-8 h-8 mx-auto animate-spin text-white mb-6" />
 
@@ -29,7 +29,7 @@ export const LoadingPage = ({ onForceLogout }: LoadingPageProps) => {
           className="bg-white/10 border-white/30 text-white hover:bg-white/20 transition-all"
           onClick={onForceLogout}
         >
-          🔄 Forcer le logout
+          🔄 Force Logout
         </Button>
       </div>
     </div>

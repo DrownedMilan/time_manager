@@ -28,11 +28,11 @@ const renderWithAuth = (overrides: Partial<AuthContextType> = {}) => {
 }
 
 describe('LoginPage', () => {
-  it('triggers Keycloak login when clicking "Se connecter"', async () => {
+  it('triggers Keycloak login when clicking "Login"', async () => {
     const user = userEvent.setup()
     const { ctx } = renderWithAuth()
 
-    await user.click(screen.getByRole('button', { name: /se connecter/i }))
+    await user.click(screen.getByRole('button', { name: /login/i }))
     expect(ctx.keycloak.login).toHaveBeenCalledWith({ redirectUri: window.location.origin })
   })
 
@@ -46,7 +46,7 @@ describe('LoginPage', () => {
       logout,
     })
 
-    await user.click(screen.getByRole('button', { name: /se d.*connecter/i }))
+    await user.click(screen.getByRole('button', { name: /logout/i }))
     expect(logout).toHaveBeenCalled()
   })
 })

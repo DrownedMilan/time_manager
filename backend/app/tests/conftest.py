@@ -1,13 +1,13 @@
 # backend/app/tests/conftest.py
 import pytest
-from fastapi.testclient import TestClient # simule un vrai client HTTP pour tester ton API sans serveur.
+from fastapi.testclient import TestClient  # simulates a real HTTP client to test your API without a server
 from sqlmodel import SQLModel, create_engine, Session
-from app.main import app # importe ton application FastAPI
+from app.main import app  # import your FastAPI application
 from app.database import get_session
 
-#  Base SQLite in-memory pour les tests
-TEST_DATABASE_URL = "sqlite:///:memory:" #base de donnée temporaire
-engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False}) # nécessaire pour que plusieurs threads (pytest et FastAPI) puissent accéder à la base.
+# SQLite in-memory database for tests
+TEST_DATABASE_URL = "sqlite:///:memory:"  # temporary database
+engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})  # necessary so multiple threads (pytest and FastAPI) can access the database
 
 @pytest.fixture(name="session")
 def session_fixture():
@@ -18,7 +18,7 @@ def session_fixture():
 
 @pytest.fixture(name="client")
 def client_fixture(session: Session):
-    # On empêche l’appel au on_startup() de se connecter à PostgreSQL
+    # Prevent the on_startup() call from connecting to PostgreSQL
     def fake_on_startup():
         SQLModel.metadata.create_all(engine)
     app.router.on_startup.clear()

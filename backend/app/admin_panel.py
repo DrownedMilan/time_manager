@@ -96,7 +96,7 @@ class ClockAdmin(ModelView, model=Clock):
     async def get_list_query(self, request: Any):  # type: ignore[override]
         stmt = await super().get_list_query(request)  # type: ignore[attr-defined]
         return stmt.options(
-            joinedload(getattr(Clock, "user"))  # ✔ Corrigé, typé, accepté Pylance
+            joinedload(getattr(Clock, "user"))  # ✔ Fixed, typed, accepted by Pylance
         )
 
     column_list = [
@@ -131,7 +131,7 @@ class ClockAdmin(ModelView, model=Clock):
 
 
 # ============================================
-#         INITIALISATION
+#         INITIALIZATION
 # ============================================
 
 def setup_admin(app, base_url="/admin"):

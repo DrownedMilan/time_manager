@@ -140,7 +140,7 @@ export default function Login(props: PageProps<Extract<KcContext, { pageId: 'log
                       <span className="inline-flex h-5 w-5 items-center justify-center rounded-sm bg-white/90">
                         <span className="text-xs font-bold text-blue-500">G</span>
                       </span>
-                      <span className="text-sm font-medium">Se connecter avec Google</span>
+                      <span className="text-sm font-medium">Login with Google</span>
                     </a>
                   )}
 

@@ -14,7 +14,7 @@ def test_cors_headers(client):
             "Access-Control-Request-Method": "GET",
         },
     )
-    # Vérifie que CORS est actif
+    # Verify that CORS is active
     assert response.status_code in (200, 204)
     assert "access-control-allow-origin" in response.headers
     assert response.headers["access-control-allow-origin"] == "http://localhost:3000"

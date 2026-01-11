@@ -2,10 +2,12 @@ import { useState, useMemo } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table'
 import { Badge } from './ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select'
-import type { Clock, User } from '../types'
+import type { Clock } from '../types/clock'
+import type { User } from '../types/user'
 import { Clock as ClockIcon } from 'lucide-react'
-import { mockUsers } from '../lib/mockData'
 import EmployeeDetailView from '../features/employees/EmployeeDetailView'
+import { getUserById } from '../services/userService'
+import { useAuth } from '../hooks/useAuth'
 
 interface ClockRecordsTableProps {
   clocks: Clock[]
@@ -13,6 +15,8 @@ interface ClockRecordsTableProps {
 }
 
 export default function ClockRecordsTable({ clocks, showUser = true }: ClockRecordsTableProps) {
+  const { keycloak } = useAuth()
+  const token = keycloak?.token ?? null
   const [dateFilter, setDateFilter] = useState('all')
   const [employeeFilter, setEmployeeFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -42,11 +46,17 @@ export default function ClockRecordsTable({ clocks, showUser = true }: ClockReco
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
-  const handleEmployeeClick = (userId: string) => {
-    const fullUser = mockUsers.find((u) => String(u.id) === userId)
-    if (fullUser) {
+  const handleEmployeeClick = async (userId: string) => {
+    if (!token) {
+      console.error('No auth token available')
+      return
+    }
+    try {
+      const fullUser = await getUserById(Number(userId), token)
       setSelectedEmployee(fullUser)
       setIsDetailOpen(true)
+    } catch (error) {
+      console.error('Failed to fetch user:', error)
     }
   }
 

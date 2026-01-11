@@ -8,7 +8,8 @@ import {
 import type { Team } from '@/types/team'
 import { Badge } from '@/components/ui/badge'
 import { Users, Mail, Clock as ClockIcon, Calendar } from 'lucide-react'
-import { mockClocks } from '../../lib/mockData'
+import { useClocks } from '../../hooks/useClocks'
+import { useAuth } from '../../hooks/useAuth'
 
 interface TeamDetailViewProps {
   team: Team | null
@@ -17,6 +18,10 @@ interface TeamDetailViewProps {
 }
 
 export default function TeamDetailView({ team, open, onOpenChange }: TeamDetailViewProps) {
+  const { keycloak } = useAuth()
+  const token = keycloak?.token ?? null
+  const { data: allClocks = [] } = useClocks(token)
+
   if (!team) return null
 
   // Get current team members for display
@@ -24,7 +29,7 @@ export default function TeamDetailView({ team, open, onOpenChange }: TeamDetailV
 
   // Get all clock records for team members
   const memberIds = currentMembers.map((m) => m.id)
-  const teamClocks = mockClocks.filter((clock) => memberIds.includes(clock.user_id))
+  const teamClocks = allClocks.filter((clock) => memberIds.includes(clock.user_id))
 
   // Group clocks by user
   const clocksByUser = currentMembers.map((member) => {

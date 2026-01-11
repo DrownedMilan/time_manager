@@ -26,7 +26,7 @@ KEYCLOAK_JWKS_URL = (
     f"{KEYCLOAK_INTERNAL_URL}/realms/{KEYCLOAK_REALM}/protocol/openid-connect/certs"
 )
 
-# On ne garde QUE les rôles métier que ton app utilise
+# Only keep business roles that the app uses
 BUSINESS_ROLES = {"employee", "manager", "organization"}
 
 # ==========================================
@@ -37,8 +37,8 @@ jwks_cache = None
 
 def get_jwks():
     """
-    Charge la liste des clés publiques Keycloak.
-    Cache la réponse pour éviter de spam l’IDP.
+    Load the list of Keycloak public keys.
+    Cache the response to avoid spamming the IDP.
     """
     global jwks_cache
 
@@ -58,30 +58,30 @@ def get_current_user(
     session: Session = Depends(get_session),
 ):
     """
-    1. Récupère le token Bearer
-    2. Récupère la clé publique Keycloak (JWKS)
-    3. Décode + valide le JWT
-    4. Extrait les infos utilisateur
-    5. Mappe Keycloak → User DB
+    1. Retrieve the Bearer token
+    2. Retrieve the Keycloak public key (JWKS)
+    3. Decode + validate the JWT
+    4. Extract user information
+    5. Map Keycloak → User DB
     """
 
     token = credentials.credentials
     jwks = get_jwks()
 
     try:
-        # Lire le header JWT pour récupérer le kid
+        # Read the JWT header to retrieve the kid
         header = jwt.get_unverified_header(token)
         kid = header.get("kid")
 
         if kid is None:
             raise HTTPException(status_code=401, detail="Invalid token header: missing kid")
 
-        # Trouver la bonne clé dans le JWKS
+        # Find the correct key in the JWKS
         rsa_key = next((key for key in jwks["keys"] if key["kid"] == kid), None)
         if rsa_key is None:
             raise HTTPException(status_code=401, detail="Invalid token key ID")
 
-        # Décodage du token Keycloak
+        # Decode the Keycloak token
         payload = jwt.decode(
             token,
             rsa_key,
@@ -104,7 +104,7 @@ def get_current_user(
     if not keycloak_id:
         raise HTTPException(status_code=401, detail="Token missing subject (sub)")
 
-    # Rôles : on filtre uniquement ceux dont ton app a besoin
+    # Roles: filter only those that the app needs
     full_roles = payload.get("realm_access", {}).get("roles", [])
     realm_roles = [r for r in full_roles if r in BUSINESS_ROLES]
 
@@ -127,7 +127,7 @@ def get_current_user(
         session.commit()
         session.refresh(user)
     else:
-        # Mise à jour des rôles si changés côté Keycloak
+        # Update roles if changed on Keycloak side
         if user.realm_roles != realm_roles:
             user.realm_roles = realm_roles
             session.add(user)
