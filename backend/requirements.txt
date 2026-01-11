@@ -8,3 +8,4 @@ sqladmin>=0.18.0
 pytest
 python-jose
 requests>=2.31.0
+apscheduler>=3.10.0
