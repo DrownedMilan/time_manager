@@ -109,7 +109,6 @@ export default function EmployeeDashboard() {
       })
       refetchClocks()
     } catch (err) {
-      console.error('Failed to clock in:', err)
     }
   }
 
@@ -122,9 +121,10 @@ export default function EmployeeDashboard() {
       })
       refetchClocks()
     } catch (err) {
-      console.error('Failed to clock out:', err)
     }
   }
+
+ 
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8">

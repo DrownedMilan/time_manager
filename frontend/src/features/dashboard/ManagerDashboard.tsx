@@ -86,7 +86,6 @@ export default function ManagerDashboard() {
         setTeamClocks(filteredClocks)
       }
     } catch (error) {
-      console.error('Failed to fetch team data:', error)
       toast.error('Failed to load team data')
     } finally {
       setIsLoading(false)
@@ -115,7 +114,6 @@ export default function ManagerDashboard() {
       // Optimistically add the new clock to the list
       setManagerClocks((prev) => (prev ? [newClock, ...prev] : [newClock]))
     } catch (err) {
-      console.error('Failed to clock in:', err)
       // On error, refetch to get correct state
       refetchClocks()
     }
@@ -134,7 +132,6 @@ export default function ManagerDashboard() {
         prev ? prev.map((c) => (c.id === updatedClock.id ? updatedClock : c)) : [updatedClock],
       )
     } catch (err) {
-      console.error('Failed to clock out:', err)
       // On error, refetch to get correct state
       refetchClocks()
     }
@@ -511,8 +508,7 @@ export default function ManagerDashboard() {
 
       toast.success(`Exported 3 CSV files for ${team.name}!`)
     } catch (error) {
-      console.error('Failed to export CSV:', error)
-      toast.error('Failed to export CSV')
+      toast.error('Failed to export KPI (API)')
     } finally {
       setIsKpiDownloading(false)
     }
