@@ -7,6 +7,7 @@ import ManagerDashboard from '@/features/dashboard/ManagerDashboard'
 import OrganizationDashboard from '@/features/dashboard/OrganizationDashboard'
 import UnauthorizedPage from '@/features/errors/UnauthorizedPage'
 import NotFoundPage from '@/features/errors/NotFoundPage'
+import { LoadingPage } from '@/components/common/LoadingPage'
 
 import DashboardLayout from '@/layouts/DashboardLayout'
 
@@ -27,10 +28,11 @@ const ProtectedRoute = ({
   allowedRoles: string[]
   children: React.ReactNode
 }) => {
-  const { authenticated, keycloak } = useAuth()
+  const { authenticated, keycloak, initialized } = useAuth()
 
+  if (!initialized) return <LoadingPage />
   if (!authenticated) return <Navigate to="/login" replace />
-  if (!keycloak?.tokenParsed) return <div>Loading...</div>
+  if (!keycloak?.tokenParsed) return <LoadingPage />
 
   const roles = getRoles(keycloak.tokenParsed)
 
@@ -41,7 +43,12 @@ const ProtectedRoute = ({
 }
 
 export const AppRoutes = () => {
-  const { authenticated, keycloak } = useAuth()
+  const { authenticated, keycloak, initialized } = useAuth()
+
+  // Show loading page while initializing
+  if (!initialized) {
+    return <LoadingPage />
+  }
 
   return (
     <Routes>
@@ -49,7 +56,7 @@ export const AppRoutes = () => {
       <Route
         path="/login"
         element={
-          authenticated && keycloak.tokenParsed ? (
+          authenticated && keycloak?.tokenParsed ? (
             <Navigate to={getHomeRoute(getRoles(keycloak.tokenParsed))} replace />
           ) : (
             <LoginPage />

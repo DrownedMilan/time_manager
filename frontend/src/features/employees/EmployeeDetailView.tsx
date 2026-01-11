@@ -48,7 +48,8 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
   const [isResetting, setIsResetting] = useState(false)
 
   // Fetch user's clock records from API
-  const { data: userClocks = [] } = useUserClocks(user?.id ?? null, token)
+  const { data: userClocksData } = useUserClocks(user?.id ?? null, token)
+  const userClocks = userClocksData ?? []
 
   if (!user) return null
 

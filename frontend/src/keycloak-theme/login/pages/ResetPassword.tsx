@@ -121,7 +121,7 @@ export default function ResetPassword(
                 className="flex items-center justify-center gap-2 text-white/70 hover:text-white text-sm transition-colors"
               >
                 <ArrowLeft className="w-4 h-4" />
-                <span>{msgStr('backToLogin') || msgStr('doLogIn') || 'Back to Login'}</span>
+                <span>Back to Login</span>
               </a>
             </div>
           </div>
