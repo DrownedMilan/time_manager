@@ -416,9 +416,8 @@
     "credentials" : [ {
       "id" : "32a058d0-e4d2-48e0-92cf-8cdd75e40a8c",
       "type" : "password",
-      "userLabel" : "My password",
-      "createdDate" : 1767776816322,
-      "secretData" : "{\"value\":\"dE9iWlvv6XO2ZvE7DVQC7kc2mr6fVawu7T28wCsm+Ww=\",\"salt\":\"hYwIZsEfYNLOJ0/93dl3ng==\",\"additionalParameters\":{}}",
+      "createdDate" : 1767973199666,
+      "secretData" : "{\"value\":\"diBhXlT7uAQLbUGJA5VPJmDblQqERmA8DtqG86KMDFA=\",\"salt\":\"L7MJtfBB7N9Fa/+eA4ZIrw==\",\"additionalParameters\":{}}",
       "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
     } ],
     "disableableCredentialTypes" : [ ],
@@ -439,9 +438,8 @@
     "credentials" : [ {
       "id" : "4f2f5d41-0a2e-427a-9f2d-45f3d6247d42",
       "type" : "password",
-      "userLabel" : "My password",
-      "createdDate" : 1761130718673,
-      "secretData" : "{\"value\":\"KyfxehCVjF/KUwNvYTbSJtmMRLmvXHFMhBPh5Gm58zk=\",\"salt\":\"mDqXmfp3cu5+bcf7EXxfPQ==\",\"additionalParameters\":{}}",
+      "createdDate" : 1768128321513,
+      "secretData" : "{\"value\":\"0oC3ffi7vCwH6g+nU4i9RtYy9S+D9IaRaUZhsNXSj+c=\",\"salt\":\"iOQWxp9iZIlSlKpI/+GDaw==\",\"additionalParameters\":{}}",
       "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
     } ],
     "disableableCredentialTypes" : [ ],
@@ -1393,7 +1391,20 @@
     "contentSecurityPolicy" : "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
     "strictTransportSecurity" : "max-age=31536000; includeSubDomains"
   },
-  "smtpServer" : { },
+  "smtpServer" : {
+    "allowutf8" : "",
+    "debug" : "false",
+    "replyToDisplayName" : "",
+    "starttls" : "false",
+    "auth" : "",
+    "port" : "1025",
+    "host" : "mailpit",
+    "replyTo" : "reply@time-manager.local",
+    "from" : "noreply@time-manager.local",
+    "fromDisplayName" : "Time Manager",
+    "envelopeFrom" : "",
+    "ssl" : "false"
+  },
   "loginTheme" : "bank-clock",
   "accountTheme" : "",
   "adminTheme" : "",
@@ -1443,7 +1454,7 @@
       "subType" : "anonymous",
       "subComponents" : { },
       "config" : {
-        "allowed-protocol-mapper-types" : [ "oidc-sha256-pairwise-sub-mapper", "oidc-full-name-mapper", "oidc-address-mapper", "saml-role-list-mapper", "saml-user-attribute-mapper", "oidc-usermodel-property-mapper", "oidc-usermodel-attribute-mapper", "saml-user-property-mapper" ]
+        "allowed-protocol-mapper-types" : [ "saml-role-list-mapper", "saml-user-property-mapper", "saml-user-attribute-mapper", "oidc-full-name-mapper", "oidc-address-mapper", "oidc-usermodel-property-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-usermodel-attribute-mapper" ]
       }
     }, {
       "id" : "9e2a02fd-bbf6-4ae8-99d4-04ec2c47cb11",
@@ -1461,7 +1472,7 @@
       "subType" : "authenticated",
       "subComponents" : { },
       "config" : {
-        "allowed-protocol-mapper-types" : [ "oidc-usermodel-attribute-mapper", "oidc-sha256-pairwise-sub-mapper", "saml-user-property-mapper", "oidc-full-name-mapper", "saml-role-list-mapper", "oidc-address-mapper", "oidc-usermodel-property-mapper", "saml-user-attribute-mapper" ]
+        "allowed-protocol-mapper-types" : [ "oidc-usermodel-attribute-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-usermodel-property-mapper", "saml-user-attribute-mapper", "oidc-address-mapper", "oidc-full-name-mapper", "saml-user-property-mapper", "saml-role-list-mapper" ]
       }
     }, {
       "id" : "19cfdf96-1b8c-4acd-9ee3-3317331c987d",
