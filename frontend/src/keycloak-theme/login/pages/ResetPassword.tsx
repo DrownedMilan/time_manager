@@ -12,7 +12,10 @@ import logo from '../../../../public/primebank_logo.png'
 import '../../../index.css'
 
 export default function ResetPassword(
-  props: PageProps<Extract<KcContext, { pageId: 'login-reset-password.ftl' }>, I18n>,
+  props: PageProps<
+    Extract<KcContext, { pageId: 'login-reset-password.ftl' | 'login-username.ftl' }>,
+    I18n
+  >,
 ) {
   const { kcContext, i18n, Template } = props
   const { msgStr } = i18n
