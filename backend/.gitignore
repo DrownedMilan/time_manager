@@ -1,0 +1,114 @@
+# =========================
+# OS / Éditeurs
+# =========================
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# =========================
+# Docker / Compose
+# =========================
+# Volumes Postgres (tes dossiers locaux)
+.postgres_db/
+.postgres_kc/
+# fichiers d’override locaux
+docker-compose.override.yml
+docker-compose.*.yml
+*.env.local
+
+
+# =========================
+# Secrets / Env
+# =========================
+.env
+# .env.*
+# !.env.example
+
+# =========================
+# Backend (Python / FastAPI)
+# =========================
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+*.pyc
+*.so
+# Virtualenv / outils
+.venv/
+venv/
+pip-wheel-metadata/
+.eggs/
+*.egg-info/
+dist/
+build/
+# Tests / Qualité
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.pyre/
+.pytype/
+.cache/
+
+# =========================
+# Frontend (Vite / React / TS)
+# =========================
+# dépendances
+node_modules/
+# sorties de build
+frontend/dist/
+# caches Vite
+.vite/
+vite.config.ts.timestamp-*
+vite.config.js.timestamp-*
+
+# Yarn Berry (v2+)
+# -- Si tu utilises "Zero-Installs", NE PAS ignorer .yarn/cache (décommente les exceptions).
+# -- Si tu N'UTILISES PAS Zero-Installs, tu peux ignorer .yarn/cache aussi pour alléger le repo.
+.yarn/*
+!.yarn/releases
+!.yarn/plugins
+!.yarn/sdks
+!.yarn/versions
+# Option Zero-Installs (décommente si tu veux conserver le cache en repo) :
+# !.yarn/cache
+# Fichiers Yarn
+.pnp.*
+.yarnrc.yml
+
+# =========================
+# Nginx
+# =========================
+nginx/*.log
+nginx/logs/
+nginx/*-access.log
+nginx/*-error.log
+# certifs locales (si tu testes en TLS)
+nginx/*.crt
+nginx/*.key
+
+# =========================
+# Logs généraux
+# =========================
+*.log
+logs/
+log/
+
+# =========================
+# Keycloak (exports locaux optionnels)
+# =========================
+# keycloak/data/
+# keycloak/exports/
+# keycloak/realms/*.json
+
+# =========================
+# Autres artefacts
+# =========================
+coverage.xml
+*.sqlite3
+*.db

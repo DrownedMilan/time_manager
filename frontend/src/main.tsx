@@ -1,21 +1,23 @@
-import { useMemo, useState } from 'react'
-import ReactDOM from 'react-dom/client'
-import { ThemeProvider, CssBaseline } from '@mui/material'
-import App from './App'
-import { getAppTheme } from './themes'
+import { createRoot } from 'react-dom/client'
+import { lazy, Suspense } from 'react'
+import { KcPage, type KcContext } from './keycloak-theme/kc.gen'
 
-export default function Main() {
-  const [mode, setMode] = useState<'light' | 'dark'>('light')
-  const theme = useMemo(() => getAppTheme(mode), [mode])
+const AppEntrypoint = lazy(() => import('./main.app'))
 
-  const toggleTheme = () => setMode((prev) => (prev === 'light' ? 'dark' : 'light'))
+createRoot(document.getElementById('root')!).render(
+  <>
+    {window.kcContext ? (
+      <KcPage kcContext={window.kcContext} />
+    ) : (
+      <Suspense>
+        <AppEntrypoint />
+      </Suspense>
+    )}
+  </>,
+)
 
-  return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <App toggleTheme={toggleTheme} mode={mode} />
-    </ThemeProvider>
-  )
+declare global {
+  interface Window {
+    kcContext?: KcContext
+  }
 }
-
-ReactDOM.createRoot(document.getElementById('root')!).render(<Main />)

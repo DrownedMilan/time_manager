@@ -1,0 +1,933 @@
+import { useState, useEffect, useCallback, useMemo } from 'react'
+import StatCard from '../../components/common/StatCard'
+import ClockWidget from '../../components/common/ClockWidget'
+import ClockRecordsTable from '../../components/ClockRecordsTable'
+import TeamMembersCard from '../../components/common/TeamMembersCard'
+import EmployeeRankingDialog from '@/features/employees/EmployeeRankingDialog'
+import ExportDialog from '../../components/common/ExportDialog'
+import { Button } from '../../components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs'
+import {
+  Clock,
+  Calendar,
+  TrendingUp,
+  Timer,
+  Award,
+  ClockAlert,
+  User as UserIcon,
+  Download,
+  Loader2,
+} from 'lucide-react'
+import type { Clock as ClockType } from '@/types/clock'
+import type { Team } from '@/types/team'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts'
+import { useUser } from '@/hooks/useUser'
+import { useAuth } from '@/hooks/useAuth'
+import { useUserClocks } from '@/hooks/useUserClocks'
+import { getTeams } from '@/services/teamService'
+import { getClocks } from '@/services/clockService'
+import { api } from '@/lib/api'
+import { toast } from 'sonner'
+
+import { getKpiSummary, type KPISummary } from '@/lib/kpiService'
+import { formatLateTime } from '@/lib/formatTime'
+
+export default function ManagerDashboard() {
+  const { user } = useUser()
+  const { keycloak } = useAuth()
+  const token = keycloak?.token ?? null
+
+  const [isLoading, setIsLoading] = useState(true)
+  const [team, setTeam] = useState<Team | null>(null)
+  const [teamClocks, setTeamClocks] = useState<ClockType[]>([])
+  const [metricDialogOpen, setMetricDialogOpen] = useState<
+    'workTime' | 'lateTime' | 'overtime' | null
+  >(null)
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
+  const [activeTab, setActiveTab] = useState('employee')
+
+  // KPI API states
+  const [isKpiDownloading, setIsKpiDownloading] = useState(false)
+  const [kpiApi, setKpiApi] = useState<KPISummary | null>(null)
+
+  // Fetch manager's own clocks using the hook (same as EmployeeDashboard)
+  const {
+    data: managerClocks,
+    isLoading: clocksLoading,
+    refetch: refetchClocks,
+    setData: setManagerClocks, // Add this
+  } = useUserClocks(user?.id ?? null, token)
+
+  const managerClocksList = useMemo(() => managerClocks ?? [], [managerClocks])
+
+  // Fetch team data from API
+  const fetchTeamData = useCallback(async () => {
+    if (!token || !user) return
+
+    setIsLoading(true)
+    try {
+      const allTeams = await getTeams(token)
+      const managedTeam = allTeams.find((t) => t.manager_id === user.id) || null
+      setTeam(managedTeam)
+
+      if (managedTeam && managedTeam.members.length > 0) {
+        const allClocks = await getClocks(token)
+        const memberIds = managedTeam.members.map((m) => m.id)
+        const filteredClocks = allClocks.filter((c) => memberIds.includes(c.user_id))
+        setTeamClocks(filteredClocks)
+      }
+    } catch (error) {
+      console.error('Failed to fetch team data:', error)
+      toast.error('Failed to load team data')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [token, user])
+
+  useEffect(() => {
+    fetchTeamData()
+  }, [fetchTeamData])
+
+  // Memoized current clock
+  const currentClock = useMemo(
+    () => managerClocksList.find((c) => !c.clock_out) || null,
+    [managerClocksList],
+  )
+
+  // Clock in/out handlers - with optimistic updates
+  const handleClockIn = useCallback(async () => {
+    if (!user || !token) return
+    try {
+      const newClock = await api<ClockType>('/clocks/', {
+        method: 'POST',
+        body: { user_id: user.id },
+        authToken: token,
+      })
+      // Optimistically add the new clock to the list
+      setManagerClocks((prev) => (prev ? [newClock, ...prev] : [newClock]))
+    } catch (err) {
+      console.error('Failed to clock in:', err)
+      // On error, refetch to get correct state
+      refetchClocks()
+    }
+  }, [user, token, setManagerClocks, refetchClocks])
+
+  const handleClockOut = useCallback(async () => {
+    if (!user || !token || !currentClock) return
+    try {
+      const updatedClock = await api<ClockType>('/clocks/', {
+        method: 'POST',
+        body: { user_id: user.id },
+        authToken: token,
+      })
+      // Optimistically update the clock in the list
+      setManagerClocks((prev) =>
+        prev ? prev.map((c) => (c.id === updatedClock.id ? updatedClock : c)) : [updatedClock],
+      )
+    } catch (err) {
+      console.error('Failed to clock out:', err)
+      // On error, refetch to get correct state
+      refetchClocks()
+    }
+  }, [user, token, currentClock, setManagerClocks, refetchClocks])
+
+  // Memoized calculations
+  const teamMemberIds = useMemo(() => team?.members.map((m) => m.id) || [], [team])
+  const activeClocks = useMemo(() => teamClocks.filter((c) => !c.clock_out).length, [teamClocks])
+  const completedTeamClocks = useMemo(() => teamClocks.filter((c) => c.clock_out), [teamClocks])
+
+  const totalHoursThisWeek = useMemo(() => {
+    return teamClocks.reduce((acc, clock) => {
+      if (clock.clock_out) {
+        const diff = new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()
+        return acc + diff / (1000 * 60 * 60)
+      }
+      return acc
+    }, 0)
+  }, [teamClocks])
+
+  const avgTotalHours = useMemo(() => {
+    return team && team.members.length > 0 ? totalHoursThisWeek / team.members.length : 0
+  }, [team, totalHoursThisWeek])
+
+  // Working days calculation - memoized
+  const { totalWorkingDays, daysWorked } = useMemo(() => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = now.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    let workingDays = 0
+    for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+      const dayOfWeek = d.getDay()
+      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        workingDays++
+      }
+    }
+
+    const firstDayOfMonth = new Date(year, month, 1)
+    const clocksThisMonth = managerClocksList.filter((c) => {
+      const clockDate = new Date(c.clock_in)
+      return clockDate >= firstDayOfMonth && c.clock_out
+    })
+    const daysWorkedSet = new Set(clocksThisMonth.map((c) => new Date(c.clock_in).toDateString()))
+
+    return { totalWorkingDays: workingDays, daysWorked: daysWorkedSet.size }
+  }, [managerClocksList])
+
+  const avgWorkTime = useMemo(() => {
+    return completedTeamClocks.length > 0
+      ? completedTeamClocks.reduce((acc, clock) => {
+          const diff = new Date(clock.clock_out!).getTime() - new Date(clock.clock_in).getTime()
+          return acc + diff / (1000 * 60 * 60)
+        }, 0) / completedTeamClocks.length
+      : 0
+  }, [completedTeamClocks])
+
+  const avgLateTime = useMemo(() => {
+    const lateClocks = teamClocks.filter((c) => {
+      const clockInTime = new Date(c.clock_in)
+      const hours = clockInTime.getHours()
+      const minutes = clockInTime.getMinutes()
+      return hours > 9 || (hours === 9 && minutes > 0)
+    })
+
+    return lateClocks.length > 0
+      ? lateClocks.reduce((acc, clock) => {
+          const clockInTime = new Date(clock.clock_in)
+          const scheduledStart = new Date(clockInTime)
+          scheduledStart.setHours(9, 0, 0, 0)
+          const lateDiff = clockInTime.getTime() - scheduledStart.getTime()
+          return acc + lateDiff / (1000 * 60)
+        }, 0) / lateClocks.length
+      : 0
+  }, [teamClocks])
+
+  const avgOvertimeHours = useMemo(() => {
+    const overtimeClocks = completedTeamClocks.filter((c) => {
+      const clockOutTime = new Date(c.clock_out!)
+      const hours = clockOutTime.getHours()
+      const minutes = clockOutTime.getMinutes()
+      return hours > 17 || (hours === 17 && minutes > 0)
+    })
+
+    return overtimeClocks.length > 0
+      ? overtimeClocks.reduce((acc, clock) => {
+          const clockOutTime = new Date(clock.clock_out!)
+          const scheduledEnd = new Date(clockOutTime)
+          scheduledEnd.setHours(17, 0, 0, 0)
+          const overtimeDiff = clockOutTime.getTime() - scheduledEnd.getTime()
+          return acc + overtimeDiff / (1000 * 60 * 60)
+        }, 0) / overtimeClocks.length
+      : 0
+  }, [completedTeamClocks])
+
+  // Manager's personal stats - memoized
+  const managerCompletedClocks = useMemo(
+    () => managerClocksList.filter((c) => c.clock_out),
+    [managerClocksList],
+  )
+
+  const managerHoursThisWeek = useMemo(() => {
+    return managerCompletedClocks.reduce((acc, clock) => {
+      if (clock.clock_out) {
+        const diff = new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()
+        return acc + diff / (1000 * 60 * 60)
+      }
+      return acc
+    }, 0)
+  }, [managerCompletedClocks])
+
+  const managerAvgLateMinutes = useMemo(() => {
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const recentClocks = managerClocksList.filter((c) => new Date(c.clock_in) >= thirtyDaysAgo)
+    const lateMinutes = recentClocks.map((clock) => {
+      const clockInDate = new Date(clock.clock_in)
+      const clockInTotalMinutes = clockInDate.getHours() * 60 + clockInDate.getMinutes()
+      const workStartMinutes = 9 * 60
+      return Math.max(0, clockInTotalMinutes - workStartMinutes)
+    })
+
+    return lateMinutes.length > 0
+      ? lateMinutes.reduce((sum, min) => sum + min, 0) / lateMinutes.length
+      : 0
+  }, [managerClocksList])
+
+  // Chart data - memoized
+  const chartData = useMemo(() => {
+    return (
+      team?.members.map((member) => {
+        const memberClocks = teamClocks.filter((c) => c.user_id === member.id && c.clock_out)
+        const totalHours = memberClocks.reduce((acc, clock) => {
+          if (clock.clock_out) {
+            const diff = new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()
+            return acc + diff / (1000 * 60 * 60)
+          }
+          return acc
+        }, 0)
+
+        return {
+          name: `${member.first_name} ${member.last_name.charAt(0)}.`,
+          hours: parseFloat(totalHours.toFixed(1)),
+        }
+      }) || []
+    )
+  }, [team, teamClocks])
+
+  // Ranking calculations - memoized
+  const calculateTeamMemberWorkTime = useCallback(() => {
+    if (!team) return []
+    return team.members
+      .map((member) => {
+        const memberClocks = teamClocks.filter((c) => c.user_id === member.id && c.clock_out)
+        const totalWorkTime = memberClocks.reduce((acc, clock) => {
+          const diff = new Date(clock.clock_out!).getTime() - new Date(clock.clock_in).getTime()
+          return acc + diff / (1000 * 60 * 60)
+        }, 0)
+        const avg = memberClocks.length > 0 ? totalWorkTime / memberClocks.length : 0
+        return { user: member, value: avg, displayValue: `${avg.toFixed(1)}h` }
+      })
+      .sort((a, b) => b.value - a.value)
+  }, [team, teamClocks])
+
+  const calculateTeamMemberLateTime = useCallback(() => {
+    if (!team) return []
+    return team.members
+      .map((member) => {
+        const memberClocks = teamClocks.filter((c) => {
+          if (c.user_id !== member.id) return false
+          const clockInTime = new Date(c.clock_in)
+          return (
+            clockInTime.getHours() > 9 ||
+            (clockInTime.getHours() === 9 && clockInTime.getMinutes() > 0)
+          )
+        })
+        const totalLateTime = memberClocks.reduce((acc, clock) => {
+          const clockInTime = new Date(clock.clock_in)
+          const scheduledStart = new Date(clockInTime)
+          scheduledStart.setHours(9, 0, 0, 0)
+          return acc + (clockInTime.getTime() - scheduledStart.getTime()) / (1000 * 60)
+        }, 0)
+        const avg = memberClocks.length > 0 ? totalLateTime / memberClocks.length : 0
+        return { user: member, value: avg, displayValue: `${avg.toFixed(0)} min` }
+      })
+      .sort((a, b) => b.value - a.value)
+  }, [team, teamClocks])
+
+  const calculateTeamMemberOvertime = useCallback(() => {
+    if (!team) return []
+    return team.members
+      .map((member) => {
+        const memberClocks = teamClocks.filter((c) => {
+          if (c.user_id !== member.id || !c.clock_out) return false
+          const clockOutTime = new Date(c.clock_out)
+          return (
+            clockOutTime.getHours() > 17 ||
+            (clockOutTime.getHours() === 17 && clockOutTime.getMinutes() > 0)
+          )
+        })
+        const totalOvertime = memberClocks.reduce((acc, clock) => {
+          const clockOutTime = new Date(clock.clock_out!)
+          const scheduledEnd = new Date(clockOutTime)
+          scheduledEnd.setHours(17, 0, 0, 0)
+          return acc + (clockOutTime.getTime() - scheduledEnd.getTime()) / (1000 * 60 * 60)
+        }, 0)
+        const avg = memberClocks.length > 0 ? totalOvertime / memberClocks.length : 0
+        return { user: member, value: avg, displayValue: `${avg.toFixed(1)}h` }
+      })
+      .sort((a, b) => b.value - a.value)
+  }, [team, teamClocks])
+
+  // Recent clocks for display - memoized
+  const recentManagerClocks = useMemo(() => managerClocksList.slice(0, 5), [managerClocksList])
+
+  if (!user) return <div>Loading...</div>
+
+  if (isLoading || clocksLoading) {
+    return (
+      <div className="container mx-auto px-4 sm:px-6 py-8 flex items-center justify-center min-h-[50vh]">
+        <Loader2 className="w-8 h-8 animate-spin text-white/60" />
+        <span className="ml-3 text-white/60">Loading dashboard...</span>
+      </div>
+    )
+  }
+
+  // =====================
+  // CSV Export helpers (same as Organization page)
+  // =====================
+  const CSV_SEPARATOR = ';'
+  const isoDate = () => new Date().toISOString().slice(0, 10)
+
+  const escapeCsv = (value: any) => {
+    const s = String(value ?? '')
+    if (/[;"\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+    return s
+  }
+
+  const rowsToCsvExcel = (rows: Record<string, any>[]) => {
+    if (!rows.length) return '\uFEFF' + `sep=${CSV_SEPARATOR}\n`
+
+    const headers = Object.keys(rows[0])
+    const headerLine = headers.map(escapeCsv).join(CSV_SEPARATOR)
+    const dataLines = rows.map((row) => headers.map((h) => escapeCsv(row[h])).join(CSV_SEPARATOR))
+
+    return '\uFEFF' + `sep=${CSV_SEPARATOR}\n` + [headerLine, ...dataLines].join('\n')
+  }
+
+  const downloadCsvExcel = (filename: string, rows: Record<string, any>[]) => {
+    const csv = rowsToCsvExcel(rows)
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+
+    URL.revokeObjectURL(url)
+  }
+
+  // KPI API download
+  const handleDownloadKpiCsv = async () => {
+    if (!token) {
+      toast.error('Missing auth token')
+      return
+    }
+
+    if (!team) {
+      toast.error('No team assigned')
+      return
+    }
+
+    setIsKpiDownloading(true)
+    try {
+      const today = isoDate()
+
+      // 1. Team KPI Summary CSV
+      const teamKpiData = {
+        team_name: team.name,
+        team_description: team.description,
+        manager_name: `${user.first_name} ${user.last_name}`,
+        total_members: team.members.length,
+        active_clocks: activeClocks,
+        avg_hours_per_shift: Number(avgWorkTime.toFixed(2)),
+        avg_late_time_minutes: Number(avgLateTime.toFixed(0)),
+        avg_overtime_hours: Number(avgOvertimeHours.toFixed(2)),
+        total_hours_this_week: Number(totalHoursThisWeek.toFixed(2)),
+        export_date: today,
+      }
+      downloadCsvExcel(`${team.name}-kpi-${today}.csv`, [teamKpiData])
+
+      // 2. Team Members with Clock Info CSV
+      const membersWithClockData = team.members.map((member) => {
+        const memberClocks = teamClocks.filter((c) => c.user_id === member.id)
+        const completedClocks = memberClocks.filter((c) => c.clock_out)
+
+        // Total hours worked
+        const totalHours = completedClocks.reduce((acc, c) => {
+          const diff = new Date(c.clock_out!).getTime() - new Date(c.clock_in).getTime()
+          return acc + diff / (1000 * 60 * 60)
+        }, 0)
+
+        // Average hours per shift
+        const avgHours = completedClocks.length > 0 ? totalHours / completedClocks.length : 0
+
+        // Late arrivals (after 9:00)
+        const lateArrivals = memberClocks.filter((c) => {
+          const clockIn = new Date(c.clock_in)
+          return clockIn.getHours() > 9 || (clockIn.getHours() === 9 && clockIn.getMinutes() > 0)
+        }).length
+
+        // Average late time
+        const avgLateMins = memberClocks
+          .filter((c) => {
+            const clockIn = new Date(c.clock_in)
+            return clockIn.getHours() > 9 || (clockIn.getHours() === 9 && clockIn.getMinutes() > 0)
+          })
+          .reduce((acc, c) => {
+            const clockIn = new Date(c.clock_in)
+            const scheduled = new Date(clockIn)
+            scheduled.setHours(9, 0, 0, 0)
+            return acc + (clockIn.getTime() - scheduled.getTime()) / (1000 * 60)
+          }, 0)
+
+        // Overtime sessions (after 17:00)
+        const overtimeSessions = completedClocks.filter((c) => {
+          const clockOut = new Date(c.clock_out!)
+          return (
+            clockOut.getHours() > 17 || (clockOut.getHours() === 17 && clockOut.getMinutes() > 0)
+          )
+        }).length
+
+        return {
+          id: member.id,
+          first_name: member.first_name,
+          last_name: member.last_name,
+          email: member.email,
+          total_clock_entries: memberClocks.length,
+          completed_shifts: completedClocks.length,
+          total_hours_worked: Number(totalHours.toFixed(2)),
+          avg_hours_per_shift: Number(avgHours.toFixed(2)),
+          late_arrivals: lateArrivals,
+          avg_late_time_minutes:
+            lateArrivals > 0 ? Number((avgLateMins / lateArrivals).toFixed(0)) : 0,
+          overtime_sessions: overtimeSessions,
+        }
+      })
+      downloadCsvExcel(`${team.name}-members-${today}.csv`, membersWithClockData)
+
+      // 3. Team Clock Records CSV
+      const clockRecordsData = teamClocks.map((clock) => {
+        const member = team.members.find((m) => m.id === clock.user_id)
+        const duration = clock.clock_out
+          ? (new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()) /
+            (1000 * 60 * 60)
+          : null
+
+        return {
+          clock_id: clock.id,
+          employee_id: clock.user_id,
+          employee_name: member ? `${member.first_name} ${member.last_name}` : 'Unknown',
+          clock_in: clock.clock_in,
+          clock_out: clock.clock_out ?? '',
+          duration_hours: duration ? Number(duration.toFixed(2)) : 'In Progress',
+          status: clock.clock_out ? 'Completed' : 'Active',
+        }
+      })
+      downloadCsvExcel(`${team.name}-clocks-${today}.csv`, clockRecordsData)
+
+      toast.success(`Exported 3 CSV files for ${team.name}!`)
+    } catch (error) {
+      console.error('Failed to export CSV:', error)
+      toast.error('Failed to export CSV')
+    } finally {
+      setIsKpiDownloading(false)
+    }
+  }
+
+  return (
+    <div className="container mx-auto px-4 sm:px-6 py-8">
+      <Tabs
+        defaultValue="employee"
+        className="w-full"
+        value={activeTab}
+        onValueChange={setActiveTab}
+      >
+        <div className="mb-8">
+          <TabsList className="grid grid-cols-2 w-full max-w-md bg-white/5 border border-white/10 text-white/60">
+            <TabsTrigger
+              value="employee"
+              className="data-[state=active]:bg-white/10 data-[state=active]:text-white/90 text-white/60"
+            >
+              Employee
+            </TabsTrigger>
+            <TabsTrigger
+              value="team"
+              className="data-[state=active]:bg-white/10 data-[state=active]:text-white/90 text-white/60"
+            >
+              Team Management
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* Employee Tab */}
+        <TabsContent value="employee" className="mt-0">
+          {/* Employee Info Bar */}
+          <div className="mb-8">
+            <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                <div className="flex flex-col">
+                  <span className="text-white/50 text-xs mb-1">Email</span>
+                  <span className="text-white/90">{user.email}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-white/50 text-xs mb-1">Phone</span>
+                  <span className="text-white/90">{user.phone_number || 'N/A'}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-white/50 text-xs mb-1">Team</span>
+                  <span className="text-white/90">{team?.name || 'N/A'}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-white/50 text-xs mb-1">Role</span>
+                  <span className="text-white/90">Manager</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-white/50 text-xs mb-1">Member Since</span>
+                  <span className="text-white/90">
+                    {new Date(user.created_at).toLocaleDateString('en-US', {
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* KPI API info */}
+          {kpiApi && (
+            <div className="mb-4 text-sm text-white/60">
+              KPI API → Employees: {kpiApi.totalEmployees} · Teams: {kpiApi.totalTeams} · Week
+              Hours: {kpiApi.totalHoursThisWeek}
+            </div>
+          )}
+
+          {/* Personal Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <StatCard
+              title="Hours This Week"
+              value={`${managerHoursThisWeek.toFixed(1)}h`}
+              icon={Clock}
+              description="Total working hours"
+              progress={{
+                current: managerHoursThisWeek,
+                total: 35,
+                unit: 'hours',
+              }}
+            />
+            <StatCard
+              title="Average Late Time"
+              value={formatLateTime(managerAvgLateMinutes)}
+              icon={ClockAlert}
+              description="Past 30 days"
+              trend={
+                managerAvgLateMinutes > 0
+                  ? {
+                      value: `${formatLateTime(managerAvgLateMinutes)} late`,
+                      positive: false,
+                    }
+                  : undefined
+              }
+            />
+            <StatCard
+              title="Working Days This Month"
+              value={`${daysWorked}/${totalWorkingDays}`}
+              icon={Calendar}
+              description={`${new Date().toLocaleDateString('en-US', { month: 'long' })}`}
+              progress={{
+                current: daysWorked,
+                total: totalWorkingDays,
+              }}
+            />
+            <StatCard
+              title="Team"
+              value={team?.name || 'No Team'}
+              icon={UserIcon}
+              description={`${team?.members.length || 0} members`}
+            />
+          </div>
+
+          {/* Clock Widget and Clock Records */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="lg:col-span-2">
+              <ClockWidget
+                userId={user.id}
+                currentClock={currentClock}
+                onClockIn={handleClockIn}
+                onClockOut={handleClockOut}
+              />
+            </div>
+
+            <div className="lg:col-span-1">
+              <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl overflow-hidden h-[420px] flex flex-col">
+                <h3 className="text-white/80 text-sm p-4 border-b border-white/10 flex-shrink-0">
+                  Your Clock Records
+                </h3>
+                <div className="overflow-y-auto flex-1 min-h-0">
+                  <div className="p-4 space-y-3">
+                    {recentManagerClocks.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Clock className="w-8 h-8 text-white/30 mx-auto mb-2" />
+                        <p className="text-white/50 text-xs">No records found</p>
+                      </div>
+                    ) : (
+                      recentManagerClocks.map((clock) => {
+                        const duration = clock.clock_out
+                          ? (() => {
+                              const diff =
+                                new Date(clock.clock_out).getTime() -
+                                new Date(clock.clock_in).getTime()
+                              const hours = Math.floor(diff / (1000 * 60 * 60))
+                              const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+                              return `${hours}h ${minutes}m`
+                            })()
+                          : 'In Progress'
+
+                        return (
+                          <div
+                            key={clock.id}
+                            className="bg-white/5 rounded-lg p-3 border border-white/5 transition-all duration-500 ease-in-out animate-in fade-in slide-in-from-top-2"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="text-white/60 text-xs">
+                                {new Date(clock.clock_in).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
+                              </span>
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded ${
+                                  clock.clock_out
+                                    ? 'bg-green-500/10 text-green-300 border border-green-500/30'
+                                    : 'bg-blue-500/10 text-blue-300 border border-blue-500/30'
+                                }`}
+                              >
+                                {clock.clock_out ? 'Completed' : 'Active'}
+                              </span>
+                            </div>
+                            <div className="text-xs text-white/70 space-y-1">
+                              <div className="flex justify-between">
+                                <span>In:</span>
+                                <span>
+                                  {new Date(clock.clock_in).toLocaleTimeString('en-US', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    hour12: false,
+                                  })}
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Out:</span>
+                                <span>
+                                  {clock.clock_out
+                                    ? new Date(clock.clock_out).toLocaleTimeString('en-US', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        hour12: false,
+                                      })
+                                    : '-'}
+                                </span>
+                              </div>
+                              <div className="flex justify-between pt-1 border-t border-white/5">
+                                <span>Duration:</span>
+                                <span className="text-white/90">{duration}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Team Management Tab */}
+        <TabsContent value="team" className="mt-0">
+          {/* Team Management Header */}
+          <div className="mb-6 flex items-center justify-between">
+            <h3 className="text-white/90">{team ? team.name : 'No team assigned'}</h3>
+
+            <Button
+              onClick={handleDownloadKpiCsv}
+              disabled={isKpiDownloading}
+              className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white"
+            >
+              {isKpiDownloading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Downloading KPI...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Export as CSV
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Team Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <StatCard
+              title="Active Now"
+              value={activeClocks}
+              icon={TrendingUp}
+              description="Currently clocked in"
+            />
+            <StatCard
+              title="Avg Hours Per Shift"
+              value={`${avgWorkTime.toFixed(1)}h`}
+              icon={Clock}
+              description="Average shift duration"
+              onClick={() => setMetricDialogOpen('workTime')}
+            />
+            <StatCard
+              title="Avg Late Time"
+              value={formatLateTime(avgLateTime)}
+              icon={Timer}
+              description="After 9:00 AM"
+              onClick={() => setMetricDialogOpen('lateTime')}
+            />
+            <StatCard
+              title="Avg Overtime"
+              value={`${avgOvertimeHours.toFixed(1)}h`}
+              icon={Award}
+              description="After 17:00"
+              onClick={() => setMetricDialogOpen('overtime')}
+            />
+          </div>
+
+          {/* Team Information and Performance */}
+          {team && (
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
+              {/* Team Information */}
+              <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 lg:col-span-2">
+                <h3 className="text-white/90 mb-4">Team Information</h3>
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center pb-3 border-b border-white/10">
+                      <span className="text-white/60">Team Name</span>
+                      <span className="text-white/90">{team.name}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-3 border-b border-white/10">
+                      <span className="text-white/60">Total Members</span>
+                      <span className="text-white/90">{team.members.length}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-3 border-b border-white/10">
+                      <span className="text-white/60">Description</span>
+                      <span className="text-white/90 text-right">{team.description}</span>
+                    </div>
+                    <div className="flex justify-between items-center pb-3 border-b border-white/10">
+                      <span className="text-white/60">Created</span>
+                      <span className="text-white/90">
+                        {new Date(team.created_at).toLocaleDateString('en-US', {
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Team Performance Chart */}
+              <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 h-[420px] flex flex-col lg:col-span-3">
+                <h3 className="text-white/90 mb-4">Team Performance</h3>
+                <div className="flex-1">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                      <XAxis
+                        dataKey="name"
+                        stroke="rgba(255,255,255,0.6)"
+                        tick={{ fill: 'rgba(255,255,255,0.6)' }}
+                      />
+                      <YAxis
+                        stroke="rgba(255,255,255,0.6)"
+                        tick={{ fill: 'rgba(255,255,255,0.6)' }}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'rgba(0,0,0,0.8)',
+                          border: '1px solid rgba(255,255,255,0.2)',
+                          borderRadius: '8px',
+                          color: 'white',
+                        }}
+                      />
+                      <Legend
+                        wrapperStyle={{
+                          color: 'rgba(255,255,255,0.6)',
+                        }}
+                      />
+                      <Bar
+                        dataKey="hours"
+                        fill="url(#colorGradient)"
+                        radius={[8, 8, 0, 0]}
+                        name="Hours Worked"
+                      />
+                      <defs>
+                        <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.8} />
+                          <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.8} />
+                        </linearGradient>
+                      </defs>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Team Members and Clock Records */}
+          {team && (
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-start">
+              {/* Team Members */}
+              <div className="lg:col-span-2 h-full">
+                <TeamMembersCard members={team.members} />
+              </div>
+
+              {/* Team Clock Records */}
+              <div className="lg:col-span-3 h-full">
+                <div className="backdrop-blur-xl bg-white/5 border border-white/10 rounded-xl p-6 h-full flex flex-col">
+                  <h3 className="text-white/90 mb-4">Team Clock Records</h3>
+                  <div className="flex-1 overflow-auto">
+                    <ClockRecordsTable clocks={teamClocks} showUser={true} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Employee Ranking Dialogs */}
+      <EmployeeRankingDialog
+        open={metricDialogOpen === 'workTime'}
+        onOpenChange={(open) => !open && setMetricDialogOpen(null)}
+        title="Average Work Time per Day"
+        description="Team members ranked by their average daily work hours"
+        employees={calculateTeamMemberWorkTime()}
+        metricLabel="avg per day"
+      />
+
+      <EmployeeRankingDialog
+        open={metricDialogOpen === 'lateTime'}
+        onOpenChange={(open) => !open && setMetricDialogOpen(null)}
+        title="Average Late Time"
+        description="Team members ranked by their average late arrival time (after 9:00 AM)"
+        employees={calculateTeamMemberLateTime()}
+        metricLabel="avg late"
+      />
+
+      <EmployeeRankingDialog
+        open={metricDialogOpen === 'overtime'}
+        onOpenChange={(open) => !open && setMetricDialogOpen(null)}
+        title="Average Overtime"
+        description="Team members ranked by their average overtime hours (after 17:00)"
+        employees={calculateTeamMemberOvertime()}
+        metricLabel="avg overtime"
+      />
+
+      <ExportDialog
+        open={isExportDialogOpen}
+        onOpenChange={setIsExportDialogOpen}
+        userRole={user.role}
+        kpiData={{
+          teamName: team?.name,
+          totalEmployees: teamMemberIds.length,
+          activeClocks: activeClocks,
+          avgHoursPerShift: avgWorkTime,
+          avgLateTime: avgLateTime,
+          avgOvertime: avgOvertimeHours,
+        }}
+      />
+    </div>
+  )
+}

@@ -2,12 +2,25 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- Tu peux garder le favicon. Si tu veux un favicon différent pour Keycloak, entoure-le aussi. -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+
+    <!-- Tout ce qui est "App only" (à ne PAS injecter dans les pages Keycloak) -->
+    <meta name="keycloakify-ignore-start" />
+    <title>Time Manager</title>
+    <script>
+      window.ENV = {
+        API_ADDRESS: "${API_ADDRESS!''}",
+        SENTRY_DSN: "${SENTRY_DSN!''}",
+      }
+    </script>
+
+    <meta name="keycloakify-ignore-end" />
   </head>
   <body>
     <div id="root"></div>
+    <!-- Entrée Vite -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
