@@ -108,7 +108,6 @@ export default function EmployeeDashboard() {
       })
       refetchClocks()
     } catch (err) {
-      console.error('Failed to clock in:', err)
     }
   }
 
@@ -121,7 +120,6 @@ export default function EmployeeDashboard() {
       })
       refetchClocks()
     } catch (err) {
-      console.error('Failed to clock out:', err)
     }
   }
 
