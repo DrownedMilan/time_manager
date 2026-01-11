@@ -18,12 +18,12 @@ Thumbs.db
 docker-compose.override.yml
 docker-compose.*.yml
 *.env.local
-.env
+
 
 # =========================
 # Secrets / Env
 # =========================
-# .env
+.env
 # .env.*
 # !.env.example
 
