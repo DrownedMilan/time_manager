@@ -47,8 +47,6 @@ import { formatLateTime } from '@/lib/formatTime'
 
 export default function OrganizationDashboard() {
   const { user } = useUser()
-
-
   const { keycloak } = useAuth()
   const token = keycloak?.token ?? null
 
