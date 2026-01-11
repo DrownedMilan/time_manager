@@ -131,7 +131,7 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
   return (
     <>
       <Dialog open={open && !showTempPassword} onOpenChange={handleClose}>
-        <DialogContent className="max-w-3xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto backdrop-blur-xl bg-slate-900/95 border-white/20">
+        <DialogContent className="max-w-5xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto backdrop-blur-xl bg-slate-900/95 border-white/20">
           <DialogHeader>
             <DialogTitle className="text-white/90">Employee Details</DialogTitle>
             <DialogDescription className="text-white/60">
@@ -139,55 +139,41 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Employee Header */}
-            <div className="pb-6 border-b border-white/10">
-              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 mb-4">
+            <div className="pb-4 border-b border-white/10">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-3">
                 <Avatar className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-blue-400 to-cyan-400 shrink-0">
                   <AvatarFallback className="bg-transparent text-white text-xl sm:text-2xl">
                     {getInitials(user.first_name, user.last_name)}
                   </AvatarFallback>
                 </Avatar>
 
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-white/90 mb-2 text-lg sm:text-xl break-words">
+                <div className="flex-1 min-w-0 flex items-center gap-3 flex-wrap">
+                  <h3 className="text-white/90 text-lg sm:text-xl break-words">
                     {user.first_name} {user.last_name}
                   </h3>
                   <Badge variant="outline" className={getRoleBadgeColor(user.role)}>
                     {user.role}
                   </Badge>
+                  {canResetPassword && (
+                    <Button
+                      onClick={() => setShowResetConfirm(true)}
+                      size="sm"
+                      variant="outline"
+                      className="bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 cursor-pointer transition-colors"
+                    >
+                      <KeyRound className="w-4 h-4 mr-2" />
+                      Reset Password
+                    </Button>
+                  )}
                 </div>
               </div>
-
-              {/* Reset Password Button Row */}
-              {canResetPassword && (
-                <div className="mt-4">
-                  <Button
-                    onClick={() => setShowResetConfirm(true)}
-                    size="sm"
-                    variant="outline"
-                    className="w-full sm:w-auto bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20 hover:text-amber-300 cursor-pointer transition-colors"
-                  >
-                    <KeyRound className="w-4 h-4 mr-2" />
-                    Reset Password
-                  </Button>
-                </div>
-              )}
-
-              {/* Debug info - remove after testing */}
-              {process.env.NODE_ENV === 'development' && currentUser && (
-                <div className="mt-2">
-                  <span className="text-xs text-white/40">
-                    Current: {currentUser.role} | Target: {user.role} | Can Reset:{' '}
-                    {canResetPassword ? 'Yes' : 'No'}
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* Contact Information */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-lg bg-white/5 border border-white/10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
                 <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-white/60">Email</p>
@@ -195,7 +181,7 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-lg bg-white/5 border border-white/10">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
                 <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-white/60">Phone</p>
@@ -203,7 +189,7 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-lg bg-white/5 border border-white/10">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
                 <Users className="w-4 h-4 sm:w-5 sm:h-5 text-purple-400 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-white/60">Team</p>
@@ -213,7 +199,7 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 p-3 sm:p-4 rounded-lg bg-white/5 border border-white/10">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
                 <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-green-400 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs text-white/60">Joined</p>
