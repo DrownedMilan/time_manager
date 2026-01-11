@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { getKpiSummary, type KPISummary } from '@/lib/kpiService'
-import { adrienApi } from '@/lib/adrienApi'
+import { kpisApi } from '@/lib/kpiApi'
 import StatCard from '../../components/common/StatCard'
 import UsersTable from '../../components/UsersTable'
 import TeamsTable from '../teams/TeamsTable'
@@ -49,19 +49,19 @@ export default function OrganizationDashboard() {
 
   useEffect(() => {
     // USERS
-    adrienApi
+    kpisApi
       .users()
       .then((data) => console.log('✅ USERS API:', data))
       .catch((err) => console.error('❌ USERS API error:', err))
 
     // TEAMS
-    adrienApi
+    kpisApi
       .teams()
       .then((data) => console.log('✅ TEAMS API:', data))
       .catch((err) => console.error('❌ TEAMS API error:', err))
 
     // CLOCKS
-    adrienApi
+    kpisApi
       .clocks()
       .then((data) => console.log('✅ CLOCKS API:', data))
       .catch((err) => console.error('❌ CLOCKS API error:', err))
@@ -378,7 +378,7 @@ export default function OrganizationDashboard() {
       setKpiApi(summary)
 
       const today = isoDate()
-      
+
       // 1. KPI Summary CSV
       downloadCsvExcel(`kpi-${today}.csv`, [summary])
 
@@ -388,9 +388,7 @@ export default function OrganizationDashboard() {
         name: t.name,
         description: t.description,
         manager_id: t.manager_id ?? '',
-        manager_name: t.manager
-          ? `${t.manager.first_name} ${t.manager.last_name}`
-          : '',
+        manager_name: t.manager ? `${t.manager.first_name} ${t.manager.last_name}` : '',
         members_count: t.members?.length ?? 0,
         member_names: t.members?.map((m) => `${m.first_name} ${m.last_name}`).join(', ') ?? '',
         created_at: t.created_at,
@@ -401,28 +399,29 @@ export default function OrganizationDashboard() {
       const usersWithClockData = users.map((u) => {
         const userClocks = clocks.filter((c) => c.user_id === u.id)
         const completedClocks = userClocks.filter((c) => c.clock_out)
-        
+
         // Total hours worked
         const totalHours = completedClocks.reduce((acc, c) => {
           const diff = new Date(c.clock_out!).getTime() - new Date(c.clock_in).getTime()
           return acc + diff / (1000 * 60 * 60)
         }, 0)
-        
+
         // Average hours per shift
-        const avgHoursPerShift = completedClocks.length > 0 
-          ? totalHours / completedClocks.length 
-          : 0
-        
+        const avgHoursPerShift =
+          completedClocks.length > 0 ? totalHours / completedClocks.length : 0
+
         // Late arrivals (after 9:00)
         const lateArrivals = userClocks.filter((c) => {
           const clockIn = new Date(c.clock_in)
           return clockIn.getHours() > 9 || (clockIn.getHours() === 9 && clockIn.getMinutes() > 0)
         }).length
-        
+
         // Overtime sessions (after 17:00)
         const overtimeSessions = completedClocks.filter((c) => {
           const clockOut = new Date(c.clock_out!)
-          return clockOut.getHours() > 17 || (clockOut.getHours() === 17 && clockOut.getMinutes() > 0)
+          return (
+            clockOut.getHours() > 17 || (clockOut.getHours() === 17 && clockOut.getMinutes() > 0)
+          )
         }).length
 
         return {
@@ -515,22 +514,26 @@ export default function OrganizationDashboard() {
           }
         }
         return u
-      })
+      }),
     )
   }
 
   // Handler for when a team is updated (manager changed, members added/removed)
-  const handleTeamUpdated = (updatedTeam: Team, addedMemberIds: number[], removedMemberIds: number[], newManagerId: number | null, oldManagerId: number | null) => {
-    const teamMinimal = { 
-      id: updatedTeam.id, 
-      name: updatedTeam.name, 
-      manager: updatedTeam.manager 
+  const handleTeamUpdated = (
+    updatedTeam: Team,
+    addedMemberIds: number[],
+    removedMemberIds: number[],
+    newManagerId: number | null,
+    oldManagerId: number | null,
+  ) => {
+    const teamMinimal = {
+      id: updatedTeam.id,
+      name: updatedTeam.name,
+      manager: updatedTeam.manager,
     }
 
     // Update teams state
-    setTeams((prevTeams) =>
-      prevTeams.map((t) => (t.id === updatedTeam.id ? updatedTeam : t))
-    )
+    setTeams((prevTeams) => prevTeams.map((t) => (t.id === updatedTeam.id ? updatedTeam : t)))
 
     // Update users state
     setUsers((prevUsers) =>
@@ -544,17 +547,17 @@ export default function OrganizationDashboard() {
           // New manager gets managed_team
           return { ...u, managed_team: teamMinimal }
         }
-        
+
         // Handle member removals
         if (removedMemberIds.includes(u.id)) {
           return { ...u, team: null }
         }
-        
+
         // Handle member additions
         if (addedMemberIds.includes(u.id)) {
           return { ...u, team: teamMinimal }
         }
-        
+
         // Update team name for existing members if name changed
         if (u.team?.id === updatedTeam.id) {
           return { ...u, team: teamMinimal }
@@ -562,9 +565,9 @@ export default function OrganizationDashboard() {
         if (u.managed_team?.id === updatedTeam.id) {
           return { ...u, managed_team: teamMinimal }
         }
-        
+
         return u
-      })
+      }),
     )
   }
 
@@ -572,11 +575,11 @@ export default function OrganizationDashboard() {
   const handleTeamDeleted = (teamId: number) => {
     // Remove team from teams state
     setTeams((prevTeams) => prevTeams.filter((t) => t.id !== teamId))
-    
+
     // Clear team/managed_team from all users who were part of this team
     setUsers((prevUsers) =>
       prevUsers.map((u) => {
-        let updated = { ...u }
+        const updated = { ...u }
         if (u.team?.id === teamId) {
           updated.team = null
         }
@@ -584,7 +587,7 @@ export default function OrganizationDashboard() {
           updated.managed_team = null
         }
         return updated
-      })
+      }),
     )
   }
 

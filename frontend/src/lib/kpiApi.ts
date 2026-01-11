@@ -12,7 +12,7 @@ async function getJson(path: string) {
   return response.json()
 }
 
-export const adrienApi = {
+export const kpisApi = {
   users: () => getJson('/users/'),
   teams: () => getJson('/teams/'),
   clocks: () => getJson('/clocks/'),
