@@ -39,6 +39,7 @@ import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
 import { getKpiSummary, type KPISummary } from '@/lib/kpiService'
+import { formatLateTime } from '@/lib/formatTime'
 
 export default function ManagerDashboard() {
   const { user } = useUser()
@@ -600,15 +601,13 @@ export default function ManagerDashboard() {
             />
             <StatCard
               title="Average Late Time"
-              value={
-                managerAvgLateMinutes < 1 ? 'On Time' : `${Math.round(managerAvgLateMinutes)} min`
-              }
+              value={formatLateTime(managerAvgLateMinutes)}
               icon={ClockAlert}
               description="Past 30 days"
               trend={
                 managerAvgLateMinutes > 0
                   ? {
-                      value: `${Math.round(managerAvgLateMinutes)} min late`,
+                      value: `${formatLateTime(managerAvgLateMinutes)} late`,
                       positive: false,
                     }
                   : undefined
@@ -771,7 +770,7 @@ export default function ManagerDashboard() {
             />
             <StatCard
               title="Avg Late Time"
-              value={`${avgLateTime.toFixed(0)} min`}
+              value={formatLateTime(avgLateTime)}
               icon={Timer}
               description="After 9:00 AM"
               onClick={() => setMetricDialogOpen('lateTime')}
