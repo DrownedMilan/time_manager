@@ -43,6 +43,7 @@ import {
 } from 'recharts'
 import { toast } from 'sonner'
 import { useUser } from '@/hooks/useUser'
+import { formatLateTime } from '@/lib/formatTime'
 
 export default function OrganizationDashboard() {
   const { user } = useUser()
@@ -660,7 +661,7 @@ export default function OrganizationDashboard() {
         />
         <StatCard
           title="Avg Late Time"
-          value={`${avgLateTime.toFixed(0)} min`}
+          value={formatLateTime(avgLateTime)}
           icon={Timer}
           description="After 9:00 AM"
           onClick={() => setMetricDialogOpen('lateTime')}

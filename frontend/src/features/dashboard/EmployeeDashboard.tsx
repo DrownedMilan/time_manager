@@ -8,6 +8,7 @@ import { useUser } from '@/hooks/useUser'
 import { useUserClocks } from '@/hooks/useUserClocks'
 import { useAuth } from '@/hooks/useAuth'
 import { api } from '@/lib/api'
+import { formatLateTime } from '@/lib/formatTime'
 
 export default function EmployeeDashboard() {
   const { user } = useUser()
@@ -181,12 +182,12 @@ export default function EmployeeDashboard() {
         />
         <StatCard
           title="Average Late Time"
-          value={avgLateMinutes < 1 ? 'On Time' : `${Math.round(avgLateMinutes)} min`}
+          value={formatLateTime(avgLateMinutes)}
           icon={ClockAlert}
           description="Past 30 days"
           trend={
             avgLateMinutes > 0
-              ? { value: `${Math.round(avgLateMinutes)} min late`, positive: false }
+              ? { value: `${formatLateTime(avgLateMinutes)} late`, positive: false }
               : undefined
           }
         />
