@@ -24,10 +24,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   console.log('DashboardLayout user:', user)
 
   const getRoleDisplay = () => {
-    switch (user.role) {
-      case UserRole.ORGANIZATION:
-        return 'Organization Admin'
-      case UserRole.MANAGER:
+    const role = user.role?.toLowerCase()
+    switch (role) {
+      case 'organization':
+        return 'Organization'
+      case 'manager':
         return 'Team Manager'
       default:
         return 'Employee'
