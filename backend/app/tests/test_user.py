@@ -8,7 +8,7 @@ def test_user_model_normalization():
         "phone_number": "+33 6 12 34 56 78",
     }
 
-    # ✅ On passe par le schéma UserCreate pour appliquer les validateurs
+    # ✅ Use the UserCreate schema to apply validators
     user_data = UserCreate(**data).model_dump()
     user = User(**user_data)
 
@@ -29,5 +29,5 @@ def test_create_user_endpoint(client):
     assert response.status_code == 200
     data = response.json()
     assert data["first_name"] == "Bob"
-    assert data["last_name"] == "MARLEY"  # ✅ ton modèle met le nom en majuscules
+    assert data["last_name"] == "MARLEY"  # ✅ your model converts the name to uppercase
     assert data["email"] == "bob@marley.com"

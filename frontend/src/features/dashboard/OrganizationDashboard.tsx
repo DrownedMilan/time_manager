@@ -76,7 +76,7 @@ export default function OrganizationDashboard() {
   const [clocks, setClocks] = useState<ClockType[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  // ✅ KPI API states
+  // KPI API states
   const [isKpiDownloading, setIsKpiDownloading] = useState(false)
   const [kpiApi, setKpiApi] = useState<KPISummary | null>(null)
 
@@ -365,7 +365,7 @@ export default function OrganizationDashboard() {
     URL.revokeObjectURL(url)
   }
 
-  // ✅ KPI API download
+  // KPI API download
   const handleDownloadKpiCsv = async () => {
     if (!token) {
       toast.error('Missing auth token')

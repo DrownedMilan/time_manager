@@ -9,6 +9,7 @@ import { api } from '@/services/api'
 import type { User } from '@/types/user'
 
 import { logout } from './logout'
+import { LoadingPage } from '@/components/common/LoadingPage'
 
 interface KeycloakProviderProps {
   children: ReactNode
@@ -36,10 +37,8 @@ export const KeycloakProvider = ({ children }: KeycloakProviderProps) => {
         localStorage.setItem('kc_token', keycloak.token)
 
         await keycloak.updateToken(30).catch(() => keycloak.login())
-        console.log('Token parsed:', keycloak.tokenParsed)
-        console.log('Token expires in:', (keycloak.tokenParsed?.exp || 0) - Date.now() / 1000)
 
-        // 2️⃣ Load FULL User from backend
+        // 2️Load FULL User from backend
         const res = await api.get<User>('/users/me', {
           headers: { Authorization: `Bearer ${keycloak.token}` },
         })
@@ -49,7 +48,7 @@ export const KeycloakProvider = ({ children }: KeycloakProviderProps) => {
       .catch(() => setInitialized(true))
   }, [])
 
-  if (!initialized) return <div>Chargement...</div>
+  if (!initialized) return <LoadingPage />
 
   return (
     <AuthContext.Provider value={{ keycloak, authenticated, initialized, logout, user }}>

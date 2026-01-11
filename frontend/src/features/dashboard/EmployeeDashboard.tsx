@@ -4,7 +4,6 @@ import ClockWidget from '@/components/common/ClockWidget'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Clock, User as UserIcon, Calendar, ClockAlert, Mail, Phone } from 'lucide-react'
 import { type Clock as ClockType } from '@/types/clock'
-import { mockClocks, mockUsers } from '../../lib/mockData'
 import { useUser } from '@/hooks/useUser'
 import { useUserClocks } from '@/hooks/useUserClocks'
 import { useAuth } from '@/hooks/useAuth'
@@ -42,7 +41,6 @@ export default function EmployeeDashboard() {
   }
 
   const clocksList = clocks ?? []
-  console.log('clocks list:', clocksList)
   const currentClock = clocksList.find((c) => !c.clock_out) || null
   const completedClocks = clocksList.filter((c) => c.clock_out)
   const totalHoursThisWeek = completedClocks.reduce((acc, clock) => {
@@ -126,8 +124,6 @@ export default function EmployeeDashboard() {
       console.error('Failed to clock out:', err)
     }
   }
-
-  console.log('created_at raw:', user.created_at)
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8">
@@ -318,15 +314,20 @@ export default function EmployeeDashboard() {
           {user.team && user.team.members && (
             <div className="space-y-3 max-h-[500px] overflow-y-auto">
               {user.team.members.map(
-                (member: { id: number; first_name: string; last_name: string; email: string }) => {
-                  // Get full user data for phone number
-                  const fullUser = mockUsers.find((u) => u.id === member.id)
+                (member: {
+                  id: number
+                  first_name: string
+                  last_name: string
+                  email: string
+                  phone_number?: string
+                }) => {
+                  // Member data is already available from team.members
+                  // Phone number may be available in member object, otherwise show N/A
+                  const phoneNumber = member.phone_number || 'N/A'
 
-                  // Check if member is currently clocked in
-                  const activeClock = mockClocks.find(
-                    (c) => c.user_id === member.id && !c.clock_out,
-                  )
-                  const isActive = !!activeClock
+                  // Note: Active clock status would require fetching clocks for each member
+                  // For now, we'll skip this check to avoid multiple API calls
+                  const isActive = false
 
                   return (
                     <div
@@ -379,9 +380,7 @@ export default function EmployeeDashboard() {
                               <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center group-hover/item:bg-white/10 transition-colors">
                                 <Phone className="w-4 h-4 text-cyan-300" />
                               </div>
-                              <span className="text-white/80 text-sm">
-                                {fullUser?.phone_number || 'N/A'}
-                              </span>
+                              <span className="text-white/80 text-sm">{phoneNumber}</span>
                             </div>
                           </div>
                         </div>

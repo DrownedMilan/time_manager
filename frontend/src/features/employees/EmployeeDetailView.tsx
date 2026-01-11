@@ -22,13 +22,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { type User, UserRole } from '@/types/user'
-import { mockClocks } from '../../lib/mockData'
 import { Mail, Phone, Calendar, Users, Clock, KeyRound, Copy, CheckCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import ClockRecordsTable from '@/components/ClockRecordsTable'
 import { useAuth } from '@/hooks/useAuth'
 import { useUser } from '@/hooks/useUser'
 import { resetUserPassword } from '@/services/userService'
+import { useUserClocks } from '@/hooks/useUserClocks'
 
 interface EmployeeDetailViewProps {
   user: User | null
@@ -47,6 +47,9 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
   const [passwordCopied, setPasswordCopied] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
 
+  // Fetch user's clock records from API
+  const { data: userClocks = [] } = useUserClocks(user?.id ?? null, token)
+
   if (!user) return null
 
   // Check if current user can reset passwords (organization or manager)
@@ -60,37 +63,6 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
   const isNotSelf = currentUser && currentUser.id !== user.id
 
   const canResetPassword = currentUser && (isOrganization || isManager) && isNotSelf
-
-  // Debug: Log current user and role for troubleshooting
-  if (open) {
-    console.log('EmployeeDetailView - Debug Info:', {
-      currentUser: currentUser
-        ? {
-            id: currentUser.id,
-            role: currentUser.role,
-            normalizedRole: currentUserRole,
-            roleType: typeof currentUser.role,
-          }
-        : null,
-      targetUser: {
-        id: user.id,
-        role: user.role,
-        roleType: typeof user.role,
-      },
-      checks: {
-        isOrganization,
-        isManager,
-        isNotSelf,
-        canResetPassword,
-        currentUserRole,
-      },
-      roleConstants: {
-        ORGANIZATION: UserRole.ORGANIZATION,
-        MANAGER: UserRole.MANAGER,
-        EMPLOYEE: UserRole.EMPLOYEE,
-      },
-    })
-  }
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
@@ -106,9 +78,6 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
         return 'bg-green-500/10 border-green-500/30 text-green-300'
     }
   }
-
-  // Get user's clock records
-  const userClocks = mockClocks.filter((clock) => clock.user_id === user.id)
 
   const handleResetPassword = async () => {
     if (!token) {
@@ -337,8 +306,8 @@ export default function EmployeeDetailView({ user, open, onOpenChange }: Employe
                 </Button>
               </div>
               <p className="text-xs text-blue-400 mt-2">
-                💡 Share this temporary password with the employee. They will be required to change
-                it on their next login.
+                Share this temporary password with the employee. They will be required to change it
+                on their next login.
               </p>
             </div>
 

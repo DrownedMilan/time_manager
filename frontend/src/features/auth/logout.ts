@@ -6,6 +6,6 @@ export function logout() {
     sessionStorage.clear()
     keycloak.logout({ redirectUri: window.location.origin })
   } catch (e) {
-    console.warn('[Logout] Erreur lors du logout Keycloak:', e)
+    console.warn('[Logout] Error during Keycloak logout:', e)
   }
 }

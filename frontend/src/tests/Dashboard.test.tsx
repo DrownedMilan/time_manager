@@ -121,10 +121,10 @@ describe('Dashboard pages', () => {
 
     renderWithUser(<EmployeeDashboard />, employee)
 
-    // Titre du dashboard
+    // Dashboard title
     expect(await screen.findByText(/employee dashboard/i)).toBeInTheDocument()
 
-    // L’email peut apparaître plusieurs fois (header, liste, etc.) → on utilise getAllByText
+    // Email can appear multiple times (header, list, etc.) → use getAllByText
     const emailOccurrences = screen.getAllByText(employee.email)
     expect(emailOccurrences.length).toBeGreaterThan(0)
   })
@@ -136,7 +136,7 @@ describe('Dashboard pages', () => {
 
     expect(screen.getByText(/team information/i)).toBeInTheDocument()
 
-    // "Investment Banking" apparaît à plusieurs endroits → on accepte plusieurs occurrences
+    // "Investment Banking" appears in multiple places → accept multiple occurrences
     const teamNameOccurrences = screen.getAllByText(/investment banking/i)
     expect(teamNameOccurrences.length).toBeGreaterThan(0)
   })

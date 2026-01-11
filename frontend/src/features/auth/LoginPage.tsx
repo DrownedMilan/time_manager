@@ -31,14 +31,14 @@ export default function LoginPage() {
             onClick={() => logout()}
             className="bg-white/20 hover:bg-white/30 border-white/30 text-white transition-all"
           >
-            Se déconnecter
+            Logout
           </Button>
         ) : (
           <Button
             onClick={handleLogin}
             className="bg-white/20 hover:bg-white/30 border-white/30 text-white transition-all"
           >
-            Se connecter
+            Login
           </Button>
         )}
       </div>

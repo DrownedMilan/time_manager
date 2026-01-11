@@ -38,7 +38,6 @@ import { getClocks } from '@/services/clockService'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
-// ✅ KPI API import (same as Organization page)
 import { getKpiSummary, type KPISummary } from '@/lib/kpiService'
 
 export default function ManagerDashboard() {
@@ -55,7 +54,7 @@ export default function ManagerDashboard() {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('employee')
 
-  // ✅ KPI API states (same as Organization page)
+  // KPI API states
   const [isKpiDownloading, setIsKpiDownloading] = useState(false)
   const [kpiApi, setKpiApi] = useState<KPISummary | null>(null)
 
@@ -100,7 +99,7 @@ export default function ManagerDashboard() {
   // Memoized current clock
   const currentClock = useMemo(
     () => managerClocksList.find((c) => !c.clock_out) || null,
-    [managerClocksList]
+    [managerClocksList],
   )
 
   // Clock in/out handlers - with optimistic updates
@@ -400,7 +399,7 @@ export default function ManagerDashboard() {
     URL.revokeObjectURL(url)
   }
 
-  // ✅ Team-specific CSV export (manager's team only)
+  // KPI API download
   const handleDownloadKpiCsv = async () => {
     if (!token) {
       toast.error('Missing auth token')
@@ -467,7 +466,9 @@ export default function ManagerDashboard() {
         // Overtime sessions (after 17:00)
         const overtimeSessions = completedClocks.filter((c) => {
           const clockOut = new Date(c.clock_out!)
-          return clockOut.getHours() > 17 || (clockOut.getHours() === 17 && clockOut.getMinutes() > 0)
+          return (
+            clockOut.getHours() > 17 || (clockOut.getHours() === 17 && clockOut.getMinutes() > 0)
+          )
         }).length
 
         return {
@@ -480,7 +481,8 @@ export default function ManagerDashboard() {
           total_hours_worked: Number(totalHours.toFixed(2)),
           avg_hours_per_shift: Number(avgHours.toFixed(2)),
           late_arrivals: lateArrivals,
-          avg_late_time_minutes: lateArrivals > 0 ? Number((avgLateMins / lateArrivals).toFixed(0)) : 0,
+          avg_late_time_minutes:
+            lateArrivals > 0 ? Number((avgLateMins / lateArrivals).toFixed(0)) : 0,
           overtime_sessions: overtimeSessions,
         }
       })
@@ -490,7 +492,8 @@ export default function ManagerDashboard() {
       const clockRecordsData = teamClocks.map((clock) => {
         const member = team.members.find((m) => m.id === clock.user_id)
         const duration = clock.clock_out
-          ? (new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()) / (1000 * 60 * 60)
+          ? (new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()) /
+            (1000 * 60 * 60)
           : null
 
         return {
@@ -574,11 +577,11 @@ export default function ManagerDashboard() {
             </div>
           </div>
 
-          {/* ✅ KPI API info (optional display, same idea as Organization page) */}
+          {/* KPI API info */}
           {kpiApi && (
             <div className="mb-4 text-sm text-white/60">
-              KPI API → Employees: {kpiApi.totalEmployees} · Teams: {kpiApi.totalTeams} · Week Hours:{' '}
-              {kpiApi.totalHoursThisWeek}
+              KPI API → Employees: {kpiApi.totalEmployees} · Teams: {kpiApi.totalTeams} · Week
+              Hours: {kpiApi.totalHoursThisWeek}
             </div>
           )}
 
@@ -732,7 +735,6 @@ export default function ManagerDashboard() {
           <div className="mb-6 flex items-center justify-between">
             <h3 className="text-white/90">{team ? team.name : 'No team assigned'}</h3>
 
-            {/* ✅ Replace existing export behavior with KPI API CSV export (same as Organization page) */}
             <Button
               onClick={handleDownloadKpiCsv}
               disabled={isKpiDownloading}
