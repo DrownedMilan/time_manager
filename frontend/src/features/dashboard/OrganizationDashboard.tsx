@@ -88,7 +88,6 @@ export default function OrganizationDashboard() {
       setTeams(fetchedTeams)
       setClocks(fetchedClocks)
     } catch (error) {
-      console.error('Failed to fetch data:', error)
       toast.error('Failed to load dashboard data')
     } finally {
       setIsLoading(false)
@@ -141,7 +140,6 @@ export default function OrganizationDashboard() {
       setClocks((prevClocks) => prevClocks.filter((clock) => clock.user_id !== userId))
       toast.success('Employee deleted successfully')
     } catch (error) {
-      console.error('Failed to delete employee:', error)
       toast.error('Failed to delete employee')
     }
   }
@@ -360,7 +358,6 @@ export default function OrganizationDashboard() {
 
       toast.success('KPI (API) exported successfully!')
     } catch (error) {
-      console.error('Failed to export KPI (API):', error)
       toast.error('Failed to export KPI (API)')
     } finally {
       setIsKpiDownloading(false)
