@@ -21,7 +21,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
   if (!user) return null
 
-  console.log('DashboardLayout user:', user)
+  
 
   const getRoleDisplay = () => {
     switch (user.role) {

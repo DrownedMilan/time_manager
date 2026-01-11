@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
 import { getKpiSummary, type KPISummary } from '@/lib/kpiService'
-import { adrienApi } from '@/lib/adrienApi'
 import StatCard from '../../components/common/StatCard'
 import UsersTable from '../../components/UsersTable'
 import TeamsTable from '../teams/TeamsTable'
@@ -46,27 +45,6 @@ import { useUser } from '@/hooks/useUser'
 
 export default function OrganizationDashboard() {
   const { user } = useUser()
-
-  useEffect(() => {
-    // USERS
-    adrienApi
-      .users()
-      .then((data) => console.log('✅ USERS API:', data))
-      .catch((err) => console.error('❌ USERS API error:', err))
-
-    // TEAMS
-    adrienApi
-      .teams()
-      .then((data) => console.log('✅ TEAMS API:', data))
-      .catch((err) => console.error('❌ TEAMS API error:', err))
-
-    // CLOCKS
-    adrienApi
-      .clocks()
-      .then((data) => console.log('✅ CLOCKS API:', data))
-      .catch((err) => console.error('❌ CLOCKS API error:', err))
-  }, [])
-
   const { keycloak } = useAuth()
   const token = keycloak?.token ?? null
 

@@ -108,15 +108,7 @@ export default function EmployeeEditDialog({
   }, [user, open, showTempPassword, createdUserId])
 
   const handleSave = async () => {
-    console.log('handleSave called', {
-      user,
-      firstName,
-      lastName,
-      email,
-      phoneNumber,
-      role,
-      token: token ? 'present' : 'missing',
-    })
+
 
     // Validation
     if (!firstName.trim() || !lastName.trim() || !email.trim() || !phoneNumber.trim()) {
@@ -143,7 +135,6 @@ export default function EmployeeEditDialog({
 
       if (user) {
         // Update existing user
-        console.log('Updating user:', user.id)
         savedUser = await updateUser(
           user.id,
           {
@@ -154,7 +145,6 @@ export default function EmployeeEditDialog({
           },
           token,
         )
-        console.log('User updated successfully:', savedUser)
         toast.success(`Employee ${firstName} ${lastName} updated successfully!`)
         onOpenChange(false)
         if (onSave) {
@@ -170,9 +160,7 @@ export default function EmployeeEditDialog({
           keycloak_id: '', // Backend will create in Keycloak
           realm_roles: [role.toLowerCase()],
         }
-        console.log('Creating user with payload:', payload)
         const result = await createUser(payload, token)
-        console.log('User created successfully:', result)
         savedUser = result.user
 
         // Set temporary password if returned from backend
@@ -194,30 +182,64 @@ export default function EmployeeEditDialog({
         // Keep dialog open to show temp password - don't close it automatically
         // User can close manually after copying the password
       }
-    } catch (err: unknown) {
-      const error = err as { status?: number; message?: string; info?: { detail?: string } }
-      console.error('Failed to save employee:', error)
-      console.error('Error details:', {
-        status: error?.status,
-        message: error?.message,
-        info: error?.info,
-      })
+} catch (err: unknown) {
 
-      if (error?.status === 409) {
-        toast.error('An employee with this email or phone number already exists')
-      } else if (error?.status === 403) {
-        toast.error(
-          'You do not have permission to create users. Only organization admins can create users.',
-        )
-      } else if (error?.status === 401) {
-        toast.error('Authentication failed. Please log in again.')
-      } else {
-        const errorMessage = error?.info?.detail || error?.message || 'Unknown error'
-        toast.error(`Failed to ${user ? 'update' : 'create'} employee: ${errorMessage}`)
-      }
-    } finally {
-      setIsSubmitting(false)
-    }
+  const error = err as any
+  const status = error?.status ?? error?.response?.status ?? error?.info?.status
+
+  const detail =
+    error?.info?.detail ??
+    error?.response?.data?.detail ??
+    error?.response?.data?.message ??
+    error?.message
+
+  const msg = String(detail ?? '').toLowerCase()
+
+  // 🔁 Cas doublon (email / téléphone)
+  if (status === 409 || status === 422) {
+    toast.error('This email address or phone number is already in use.')
+    return
+  }
+
+  // 🔁 Fallback si le backend renvoie 500 au lieu de 409
+  if (
+    status === 500 &&
+    (msg.includes('unique') ||
+      msg.includes('duplicate') ||
+      msg.includes('already') ||
+      msg.includes('exists'))
+  ) {
+    toast.error('This email address or phone number is already in use.')
+    return
+  }
+
+  // 🔐 Auth / permissions
+  if (status === 401) {
+    toast.error('Session expired. Please log in again.')
+    return
+  }
+
+  if (status === 403) {
+    toast.error("You do not have permission to perform this action.")
+    return
+  }
+
+  // 🧯 Erreur serveur générique
+  if (status === 500) {
+    toast.error("Server error during registration. Please try again.")
+    return
+  }
+
+  // 🧩 Fallback final (toujours un message)
+  toast.error(
+    `Impossible de ${user ? 'mettre à jour' : 'créer'} l’employé${
+      detail ? ` : ${String(detail)}` : ''
+    }`,
+  )
+} finally {
+  setIsSubmitting(false)
+}
+
   }
 
   const handleCancel = () => {
@@ -481,3 +503,6 @@ export default function EmployeeEditDialog({
     </>
   )
 }
+
+
+

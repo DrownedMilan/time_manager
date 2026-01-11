@@ -42,7 +42,6 @@ export default function EmployeeDashboard() {
   }
 
   const clocksList = clocks ?? []
-  console.log('clocks list:', clocksList)
   const currentClock = clocksList.find((c) => !c.clock_out) || null
   const completedClocks = clocksList.filter((c) => c.clock_out)
   const totalHoursThisWeek = completedClocks.reduce((acc, clock) => {
@@ -127,7 +126,7 @@ export default function EmployeeDashboard() {
     }
   }
 
-  console.log('created_at raw:', user.created_at)
+ 
 
   return (
     <div className="container mx-auto px-4 sm:px-6 py-8">
