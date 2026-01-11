@@ -89,7 +89,6 @@ export default function OrganizationDashboard() {
       setTeams(fetchedTeams)
       setClocks(fetchedClocks)
     } catch (error) {
-      console.error('Failed to fetch data:', error)
       toast.error('Failed to load dashboard data')
     } finally {
       setIsLoading(false)
@@ -142,7 +141,6 @@ export default function OrganizationDashboard() {
       setClocks((prevClocks) => prevClocks.filter((clock) => clock.user_id !== userId))
       toast.success('Employee deleted successfully')
     } catch (error) {
-      console.error('Failed to delete employee:', error)
       toast.error('Failed to delete employee')
     }
   }
@@ -357,12 +355,39 @@ export default function OrganizationDashboard() {
       setKpiApi(summary)
 
       const today = isoDate()
+      downloadCsvExcel(`kpi-api-${today}.csv`, [summary])
 
-      // 1. KPI Summary CSV
-      downloadCsvExcel(`kpi-${today}.csv`, [summary])
+      toast.success('KPI (API) exported successfully!')
+    } catch (error) {
+      toast.error('Failed to export KPI (API)')
+    } finally {
+      setIsKpiDownloading(false)
+    }
+  }
 
-      // 2. Teams CSV
-      const teamsData = teams.map((t) => ({
+  const handleExportCsv = () => {
+    const today = isoDate()
+
+    // USERS
+    downloadCsvExcel(
+      `users-${today}.csv`,
+      users.map((u) => ({
+        id: u.id,
+        first_name: u.first_name,
+        last_name: u.last_name,
+        email: u.email,
+        phone_number: u.phone_number ?? '',
+      })),
+    )
+
+    // TEAMS
+    const managerNameById = new Map<number, string>(
+      users.map((u) => [u.id, `${u.first_name} ${u.last_name}`]),
+    )
+
+    downloadCsvExcel(
+      `teams-${today}.csv`,
+      teams.map((t) => ({
         id: t.id,
         name: t.name,
         description: t.description,
