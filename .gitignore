@@ -35,6 +35,7 @@ __pycache__/
 *.pyo
 *.pyc
 *.so
+.env
 # Virtualenv / outils
 .venv/
 venv/
