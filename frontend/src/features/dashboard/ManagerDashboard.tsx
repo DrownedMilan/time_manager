@@ -406,18 +406,112 @@ export default function ManagerDashboard() {
       return
     }
 
+    if (!team) {
+      toast.error('No team assigned')
+      return
+    }
+
     setIsKpiDownloading(true)
     try {
-      const summary = await getKpiSummary(token)
-      setKpiApi(summary)
-
       const today = isoDate()
-      downloadCsvExcel(`kpi-api-${today}.csv`, [summary])
 
-      toast.success('KPI (API) exported successfully!')
+      // 1. Team KPI Summary CSV
+      const teamKpiData = {
+        team_name: team.name,
+        team_description: team.description,
+        manager_name: `${user.first_name} ${user.last_name}`,
+        total_members: team.members.length,
+        active_clocks: activeClocks,
+        avg_hours_per_shift: Number(avgWorkTime.toFixed(2)),
+        avg_late_time_minutes: Number(avgLateTime.toFixed(0)),
+        avg_overtime_hours: Number(avgOvertimeHours.toFixed(2)),
+        total_hours_this_week: Number(totalHoursThisWeek.toFixed(2)),
+        export_date: today,
+      }
+      downloadCsvExcel(`${team.name}-kpi-${today}.csv`, [teamKpiData])
+
+      // 2. Team Members with Clock Info CSV
+      const membersWithClockData = team.members.map((member) => {
+        const memberClocks = teamClocks.filter((c) => c.user_id === member.id)
+        const completedClocks = memberClocks.filter((c) => c.clock_out)
+
+        // Total hours worked
+        const totalHours = completedClocks.reduce((acc, c) => {
+          const diff = new Date(c.clock_out!).getTime() - new Date(c.clock_in).getTime()
+          return acc + diff / (1000 * 60 * 60)
+        }, 0)
+
+        // Average hours per shift
+        const avgHours = completedClocks.length > 0 ? totalHours / completedClocks.length : 0
+
+        // Late arrivals (after 9:00)
+        const lateArrivals = memberClocks.filter((c) => {
+          const clockIn = new Date(c.clock_in)
+          return clockIn.getHours() > 9 || (clockIn.getHours() === 9 && clockIn.getMinutes() > 0)
+        }).length
+
+        // Average late time
+        const avgLateMins = memberClocks
+          .filter((c) => {
+            const clockIn = new Date(c.clock_in)
+            return clockIn.getHours() > 9 || (clockIn.getHours() === 9 && clockIn.getMinutes() > 0)
+          })
+          .reduce((acc, c) => {
+            const clockIn = new Date(c.clock_in)
+            const scheduled = new Date(clockIn)
+            scheduled.setHours(9, 0, 0, 0)
+            return acc + (clockIn.getTime() - scheduled.getTime()) / (1000 * 60)
+          }, 0)
+
+        // Overtime sessions (after 17:00)
+        const overtimeSessions = completedClocks.filter((c) => {
+          const clockOut = new Date(c.clock_out!)
+          return (
+            clockOut.getHours() > 17 || (clockOut.getHours() === 17 && clockOut.getMinutes() > 0)
+          )
+        }).length
+
+        return {
+          id: member.id,
+          first_name: member.first_name,
+          last_name: member.last_name,
+          email: member.email,
+          total_clock_entries: memberClocks.length,
+          completed_shifts: completedClocks.length,
+          total_hours_worked: Number(totalHours.toFixed(2)),
+          avg_hours_per_shift: Number(avgHours.toFixed(2)),
+          late_arrivals: lateArrivals,
+          avg_late_time_minutes:
+            lateArrivals > 0 ? Number((avgLateMins / lateArrivals).toFixed(0)) : 0,
+          overtime_sessions: overtimeSessions,
+        }
+      })
+      downloadCsvExcel(`${team.name}-members-${today}.csv`, membersWithClockData)
+
+      // 3. Team Clock Records CSV
+      const clockRecordsData = teamClocks.map((clock) => {
+        const member = team.members.find((m) => m.id === clock.user_id)
+        const duration = clock.clock_out
+          ? (new Date(clock.clock_out).getTime() - new Date(clock.clock_in).getTime()) /
+            (1000 * 60 * 60)
+          : null
+
+        return {
+          clock_id: clock.id,
+          employee_id: clock.user_id,
+          employee_name: member ? `${member.first_name} ${member.last_name}` : 'Unknown',
+          clock_in: clock.clock_in,
+          clock_out: clock.clock_out ?? '',
+          duration_hours: duration ? Number(duration.toFixed(2)) : 'In Progress',
+          status: clock.clock_out ? 'Completed' : 'Active',
+        }
+      })
+      downloadCsvExcel(`${team.name}-clocks-${today}.csv`, clockRecordsData)
+
+      toast.success(`Exported 3 CSV files for ${team.name}!`)
     } catch (error) {
-      console.error('Failed to export KPI (API):', error)
-      toast.error('Failed to export KPI (API)')
+      console.error('Failed to export CSV:', error)
+      toast.error('Failed to export CSV')
     } finally {
       setIsKpiDownloading(false)
     }

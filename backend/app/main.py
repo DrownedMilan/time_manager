@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from sqlmodel import SQLModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from app.scheduler import start_scheduler, shutdown_scheduler
 
 
 from app.database import engine
@@ -51,6 +52,12 @@ app.add_middleware(
 @app.on_event("startup")
 def on_startup():
     SQLModel.metadata.create_all(engine)
+    start_scheduler()  # Add this line
+
+
+@app.on_event("shutdown")
+def on_shutdown():
+    shutdown_scheduler()  # Add this event
 
 
 # ==============================
