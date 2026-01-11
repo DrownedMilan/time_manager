@@ -146,6 +146,17 @@ services:
     networks:
       - appnet
 
+  # --- MAILPIT (pour tests emails en développement) ---
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: mailpit
+    ports:
+      - "1025:1025"  # SMTP server
+      - "8025:8025"  # Web UI
+    networks:
+      - appnet
+    restart: unless-stopped
+
 volumes:
   frontend_node_modules:
 
