@@ -180,62 +180,64 @@ export default function EmployeeEditDialog({
         // Keep dialog open to show temp password - don't close it automatically
         // User can close manually after copying the password
       }
-    } catch (err: unknown) {
-      const error = err as any
-      const status = error?.status ?? error?.response?.status ?? error?.info?.status
+} catch (err: unknown) {
 
-      const detail =
-        error?.info?.detail ??
-        error?.response?.data?.detail ??
-        error?.response?.data?.message ??
-        error?.message
+  const error = err as any
+  const status = error?.status ?? error?.response?.status ?? error?.info?.status
 
-      const msg = String(detail ?? '').toLowerCase()
+  const detail =
+    error?.info?.detail ??
+    error?.response?.data?.detail ??
+    error?.response?.data?.message ??
+    error?.message
 
-      // 🔁 Cas doublon (email / téléphone)
-      if (status === 409 || status === 422) {
-        toast.error('This email address or phone number is already in use.')
-        return
-      }
+  const msg = String(detail ?? '').toLowerCase()
 
-      // 🔁 Fallback si le backend renvoie 500 au lieu de 409
-      if (
-        status === 500 &&
-        (msg.includes('unique') ||
-          msg.includes('duplicate') ||
-          msg.includes('already') ||
-          msg.includes('exists'))
-      ) {
-        toast.error('This email address or phone number is already in use.')
-        return
-      }
+  // 🔁 Cas doublon (email / téléphone)
+  if (status === 409 || status === 422) {
+    toast.error('This email address or phone number is already in use.')
+    return
+  }
 
-      // 🔐 Auth / permissions
-      if (status === 401) {
-        toast.error('Session expired. Please log in again.')
-        return
-      }
+  // 🔁 Fallback si le backend renvoie 500 au lieu de 409
+  if (
+    status === 500 &&
+    (msg.includes('unique') ||
+      msg.includes('duplicate') ||
+      msg.includes('already') ||
+      msg.includes('exists'))
+  ) {
+    toast.error('This email address or phone number is already in use.')
+    return
+  }
 
-      if (status === 403) {
-        toast.error('You do not have permission to perform this action.')
-        return
-      }
+  // 🔐 Auth / permissions
+  if (status === 401) {
+    toast.error('Session expired. Please log in again.')
+    return
+  }
 
-      // 🧯 Erreur serveur générique
-      if (status === 500) {
-        toast.error('Server error during registration. Please try again.')
-        return
-      }
+  if (status === 403) {
+    toast.error("You do not have permission to perform this action.")
+    return
+  }
 
-      // 🧩 Fallback final (toujours un message)
-      toast.error(
-        `Impossible de ${user ? 'mettre à jour' : 'créer'} l’employé${
-          detail ? ` : ${String(detail)}` : ''
-        }`,
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
+  // 🧯 Erreur serveur générique
+  if (status === 500) {
+    toast.error("Server error during registration. Please try again.")
+    return
+  }
+
+  // 🧩 Fallback final (toujours un message)
+  toast.error(
+    `Impossible de ${user ? 'mettre à jour' : 'créer'} l’employé${
+      detail ? ` : ${String(detail)}` : ''
+    }`,
+  )
+} finally {
+  setIsSubmitting(false)
+}
+
   }
 
   const handleCancel = () => {
@@ -499,3 +501,6 @@ export default function EmployeeEditDialog({
     </>
   )
 }
+
+
+
