@@ -378,74 +378,79 @@ export default function OrganizationDashboard() {
       setKpiApi(summary)
 
       const today = isoDate()
-      downloadCsvExcel(`kpi-api-${today}.csv`, [summary])
+      
+      // 1. KPI Summary CSV
+      downloadCsvExcel(`kpi-${today}.csv`, [summary])
 
-      toast.success('KPI (API) exported successfully!')
-    } catch (error) {
-      console.error('Failed to export KPI (API):', error)
-      toast.error('Failed to export KPI (API)')
-    } finally {
-      setIsKpiDownloading(false)
-    }
-  }
-
-  const handleExportCsv = () => {
-    const today = isoDate()
-
-    // USERS
-    downloadCsvExcel(
-      `users-${today}.csv`,
-      users.map((u) => ({
-        id: u.id,
-        first_name: u.first_name,
-        last_name: u.last_name,
-        email: u.email,
-        phone_number: u.phone_number ?? '',
-      })),
-    )
-
-    // TEAMS
-    const managerNameById = new Map<number, string>(
-      users.map((u) => [u.id, `${u.first_name} ${u.last_name}`]),
-    )
-
-    downloadCsvExcel(
-      `teams-${today}.csv`,
-      teams.map((t) => ({
+      // 2. Teams CSV
+      const teamsData = teams.map((t) => ({
         id: t.id,
         name: t.name,
         description: t.description,
         manager_id: t.manager_id ?? '',
-        manager_name: t.manager_id ? (managerNameById.get(t.manager_id) ?? '') : '',
+        manager_name: t.manager
+          ? `${t.manager.first_name} ${t.manager.last_name}`
+          : '',
         members_count: t.members?.length ?? 0,
-      })),
-    )
+        member_names: t.members?.map((m) => `${m.first_name} ${m.last_name}`).join(', ') ?? '',
+        created_at: t.created_at,
+      }))
+      downloadCsvExcel(`teams-${today}.csv`, teamsData)
 
-    // CLOCKS
-    downloadCsvExcel(
-      `clocks-${today}.csv`,
-      clocks.map((c) => ({
-        id: c.id,
-        user_id: c.user_id,
-        clock_in: c.clock_in,
-        clock_out: c.clock_out ?? '',
-      })),
-    )
+      // 3. Users with Clock Info CSV
+      const usersWithClockData = users.map((u) => {
+        const userClocks = clocks.filter((c) => c.user_id === u.id)
+        const completedClocks = userClocks.filter((c) => c.clock_out)
+        
+        // Total hours worked
+        const totalHours = completedClocks.reduce((acc, c) => {
+          const diff = new Date(c.clock_out!).getTime() - new Date(c.clock_in).getTime()
+          return acc + diff / (1000 * 60 * 60)
+        }, 0)
+        
+        // Average hours per shift
+        const avgHoursPerShift = completedClocks.length > 0 
+          ? totalHours / completedClocks.length 
+          : 0
+        
+        // Late arrivals (after 9:00)
+        const lateArrivals = userClocks.filter((c) => {
+          const clockIn = new Date(c.clock_in)
+          return clockIn.getHours() > 9 || (clockIn.getHours() === 9 && clockIn.getMinutes() > 0)
+        }).length
+        
+        // Overtime sessions (after 17:00)
+        const overtimeSessions = completedClocks.filter((c) => {
+          const clockOut = new Date(c.clock_out!)
+          return clockOut.getHours() > 17 || (clockOut.getHours() === 17 && clockOut.getMinutes() > 0)
+        }).length
 
-    // KPI (local)
-    downloadCsvExcel(`kpi-${today}.csv`, [
-      {
-        totalEmployees: totalUsers,
-        totalTeams: totalTeams,
-        activeClocks: activeClocks,
-        avgHoursPerEmployeeWeek: Number(avgTotalHours.toFixed(1)),
-        avgHoursPerShift: Number(avgWorkTime.toFixed(1)),
-        avgLateTimeMinutes: Number(avgLateTime.toFixed(0)),
-        avgOvertimeHours: Number(avgOvertimeHours.toFixed(1)),
-      },
-    ])
+        return {
+          id: u.id,
+          first_name: u.first_name,
+          last_name: u.last_name,
+          email: u.email,
+          phone_number: u.phone_number ?? '',
+          role: u.role,
+          team: u.team?.name || u.managed_team?.name || '',
+          total_clock_entries: userClocks.length,
+          completed_shifts: completedClocks.length,
+          total_hours_worked: Number(totalHours.toFixed(2)),
+          avg_hours_per_shift: Number(avgHoursPerShift.toFixed(2)),
+          late_arrivals: lateArrivals,
+          overtime_sessions: overtimeSessions,
+          created_at: u.created_at,
+        }
+      })
+      downloadCsvExcel(`users-clock-info-${today}.csv`, usersWithClockData)
 
-    toast.success('Data exported successfully!')
+      toast.success('All CSV files exported successfully!')
+    } catch (error) {
+      console.error('Failed to export CSV:', error)
+      toast.error('Failed to export CSV')
+    } finally {
+      setIsKpiDownloading(false)
+    }
   }
 
   const handleSaveEmployee = (savedUser: User, isNew: boolean) => {
