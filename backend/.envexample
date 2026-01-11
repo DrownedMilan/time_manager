@@ -1,0 +1,4 @@
+KEYCLOAK_REALM=time-manager
+KEYCLOAK_PUBLIC_URL=http://localhost:4000/auth
+KEYCLOAK_INTERNAL_URL=http://keycloak:8080/auth
+KEYCLOAK_AUDIENCE=account

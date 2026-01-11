@@ -15,5 +15,5 @@ SQL_DB_URL = (f"postgresql://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{POSTGRES_HOST}
 engine = create_engine(SQL_DB_URL, echo=True)
 
 def get_session():
-	with Session(engine) as session:
-		yield session
+    with Session(engine) as session:
+        yield session

@@ -1,23 +1,26 @@
 # ----------------------------------------------------
-# Build stage — using Yarn 4 with Node 20
+# Development build — Yarn 4 + Node 20
 # ----------------------------------------------------
 FROM node:20-alpine AS build
 WORKDIR /app
-COPY package.json yarn.lock ./
-COPY .yarn .yarn
-COPY .yarnrc.yml ./
-RUN corepack enable && yarn install --immutable
+    
+# Enable corepack (uses built-in Yarn from Node)
+RUN corepack enable
+    
+# Copy package files (include Yarn config before install)
+COPY package.json yarn.lock .yarnrc.yml ./
+    
+# Install dependencies at build time
+RUN yarn install --immutable
+    
+#Copy the rest of the frontend
 COPY . .
-RUN yarn build
-
-# ----------------------------------------------------
-# Production stage — Nginx
-# ----------------------------------------------------
-# FROM nginx:1.28.0-alpine3.21
-
-# COPY --from=build /app/dist /usr/share/nginx/html
-
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# EXPOSE 80
-# CMD ["nginx", "-g", "daemon off;"]
+    
+# Copy and set up entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+    
+ENTRYPOINT ["docker-entrypoint.sh"]
+    
+# Start the Vite dev server
+CMD ["yarn", "dev", "--host", "0.0.0.0"]
