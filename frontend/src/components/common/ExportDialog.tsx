@@ -13,6 +13,7 @@ import { Label } from '../../components/ui/label'
 import { Download, FileSpreadsheet } from 'lucide-react'
 import { mockUsers, mockTeams, mockClocks } from '../../lib/mockData'
 import { UserRole } from '@/types/user'
+import { formatLateTime } from '@/lib/formatTime'
 
 interface ExportDialogProps {
   open: boolean
@@ -74,7 +75,7 @@ export default function ExportDialog({
         if (kpiData.avgHoursPerShift !== undefined)
           csvContent += `Avg Hours Per Shift,${kpiData.avgHoursPerShift.toFixed(1)}h\n`
         if (kpiData.avgLateTime !== undefined)
-          csvContent += `Avg Late Time,${kpiData.avgLateTime.toFixed(0)} min\n`
+          csvContent += `Avg Late Time,${formatLateTime(kpiData.avgLateTime)}\n`
         if (kpiData.avgOvertime !== undefined)
           csvContent += `Avg Overtime,${kpiData.avgOvertime.toFixed(1)}h\n`
       } else if (userRole === UserRole.MANAGER) {
@@ -86,7 +87,7 @@ export default function ExportDialog({
         if (kpiData.avgHoursPerShift !== undefined)
           csvContent += `Avg Hours Per Shift,${kpiData.avgHoursPerShift.toFixed(1)}h\n`
         if (kpiData.avgLateTime !== undefined)
-          csvContent += `Avg Late Time,${kpiData.avgLateTime.toFixed(0)} min\n`
+          csvContent += `Avg Late Time,${formatLateTime(kpiData.avgLateTime)}\n`
         if (kpiData.avgOvertime !== undefined)
           csvContent += `Avg Overtime,${kpiData.avgOvertime.toFixed(1)}h\n`
       }
