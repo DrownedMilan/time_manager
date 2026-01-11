@@ -112,8 +112,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       <PasswordChangeDialog
         open={isPasswordDialogOpen}
         onOpenChange={setIsPasswordDialogOpen}
+        userId={user.id}
         userName={user.first_name}
         userEmail={user.email}
+        userPhoneNumber={user.phone_number}
+        userTeamName={user.team?.name || null}
       />
 
       {user.role === UserRole.ORGANIZATION && (

@@ -57,6 +57,13 @@ export interface UserMinimal {
   role?: UserRole         // Parsed role (optional since it may come from realm_roles)
 }
 
+export interface UserUpdatePayload {
+  first_name?: string
+  last_name?: string
+  email?: string
+  phone_number?: string
+}
+
 // Helper to convert realm_roles to UserRole
 export function parseUserRole(realm_roles: string[]): UserRole {
   const roles = realm_roles.map((r) => r.toLowerCase())
