@@ -1,3 +1,4 @@
+import { Toaster } from 'sonner'
 import App from './App'
 import { KeycloakProvider } from '@/features/auth/keycloakProvider'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -13,6 +14,7 @@ export default function AppEntrypoint() {
         <BrowserRouter>
           <App />
         </BrowserRouter>
+        <Toaster richColors position="top-right" />
       </QueryClientProvider>
     </KeycloakProvider>
   )

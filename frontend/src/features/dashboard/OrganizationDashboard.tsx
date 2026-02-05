@@ -47,27 +47,6 @@ import { formatLateTime } from '@/lib/formatTime'
 
 export default function OrganizationDashboard() {
   const { user } = useUser()
-
-  useEffect(() => {
-    // USERS
-    kpisApi
-      .users()
-      .then((data) => console.log('✅ USERS API:', data))
-      .catch((err) => console.error('❌ USERS API error:', err))
-
-    // TEAMS
-    kpisApi
-      .teams()
-      .then((data) => console.log('✅ TEAMS API:', data))
-      .catch((err) => console.error('❌ TEAMS API error:', err))
-
-    // CLOCKS
-    kpisApi
-      .clocks()
-      .then((data) => console.log('✅ CLOCKS API:', data))
-      .catch((err) => console.error('❌ CLOCKS API error:', err))
-  }, [])
-
   const { keycloak } = useAuth()
   const token = keycloak?.token ?? null
 
@@ -111,7 +90,6 @@ export default function OrganizationDashboard() {
       setTeams(fetchedTeams)
       setClocks(fetchedClocks)
     } catch (error) {
-      console.error('Failed to fetch data:', error)
       toast.error('Failed to load dashboard data')
     } finally {
       setIsLoading(false)
@@ -164,7 +142,6 @@ export default function OrganizationDashboard() {
       setClocks((prevClocks) => prevClocks.filter((clock) => clock.user_id !== userId))
       toast.success('Employee deleted successfully')
     } catch (error) {
-      console.error('Failed to delete employee:', error)
       toast.error('Failed to delete employee')
     }
   }
@@ -446,7 +423,6 @@ export default function OrganizationDashboard() {
 
       toast.success('All CSV files exported successfully!')
     } catch (error) {
-      console.error('Failed to export CSV:', error)
       toast.error('Failed to export CSV')
     } finally {
       setIsKpiDownloading(false)

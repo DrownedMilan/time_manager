@@ -7,6 +7,7 @@ import Template from './Template'
 
 import Login from './pages/Login'
 import UpdatePassword from './pages/UpdatePassword'
+import ResetPassword from './pages/ResetPassword'
 
 const UserProfileFormFields = lazy(() => import('keycloakify/login/UserProfileFormFields'))
 
@@ -20,11 +21,24 @@ export default function KcPage(props: { kcContext: KcContext }) {
     <Suspense fallback={null}>
       {(() => {
         // Check if this is an update password required action
+        const kcContextAny = kcContext as any
         const isUpdatePassword =
-          kcContext.pageId === 'update-password.ftl' ||
-          (kcContext as any).pageId === 'update-password.ftl' ||
-          (kcContext as any).url?.loginAction?.includes('UPDATE_PASSWORD') ||
-          (kcContext as any).execution === 'UPDATE_PASSWORD'
+          kcContextAny.pageId === 'update-password.ftl' ||
+          kcContextAny.url?.loginAction?.includes('UPDATE_PASSWORD') ||
+          kcContextAny.execution === 'UPDATE_PASSWORD'
+
+        // Check if it's a reset password page BEFORE the switch
+        // This allows us to catch it even if pageId doesn't match
+        const url = kcContextAny.url
+        const currentUrl = typeof window !== 'undefined' ? window.location.href : ''
+        const execution = kcContextAny.execution
+        const isResetCredentialsFlow =
+          execution === 'RESET_CREDENTIALS' ||
+          (typeof url?.loginAction === 'string' && url.loginAction.includes('reset-credentials')) ||
+          url?.loginResetCredentialsUrl !== undefined ||
+          (typeof currentUrl === 'string' &&
+            (currentUrl.includes('reset-credentials') ||
+              currentUrl.includes('login-actions/reset-credentials')))
 
         switch (kcContext.pageId) {
           case 'login.ftl':
@@ -38,9 +52,10 @@ export default function KcPage(props: { kcContext: KcContext }) {
               />
             )
 
-          case 'update-password.ftl':
+          case 'login-reset-password.ftl':
+          case 'login-username.ftl':
             return (
-              <UpdatePassword
+              <ResetPassword
                 kcContext={kcContext as any}
                 i18n={i18n as any}
                 Template={Template as any}
@@ -50,8 +65,20 @@ export default function KcPage(props: { kcContext: KcContext }) {
             )
 
           default:
+            // If we detected reset credentials flow, use ResetPassword even if pageId doesn't match
+            if (isResetCredentialsFlow) {
+              return (
+                <ResetPassword
+                  kcContext={kcContext as any}
+                  i18n={i18n as any}
+                  Template={Template as any}
+                  classes={classes as any}
+                  doUseDefaultCss={false}
+                />
+              )
+            }
             // Fallback: check if it's an update password page by URL or execution
-            if (isUpdatePassword) {
+            if (isUpdatePassword || kcContextAny.pageId === 'update-password.ftl') {
               return (
                 <UpdatePassword
                   kcContext={kcContext as any}
